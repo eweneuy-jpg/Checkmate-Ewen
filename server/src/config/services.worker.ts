@@ -39,6 +39,7 @@ import { GameProvider } from "@/service/network/GameProvider.js";
 import { GrpcProvider } from "@/service/network/GrpcProvider.js";
 import { WebSocketProvider } from "@/service/network/WebSocketProvider.js";
 import { DNSProvider } from "@/service/network/DNSProvider.js";
+import { BgpProvider, SshRouterCommandRunner } from "@/service/network/BgpProvider.js";
 export interface WorkerServices {
 	worker: IQueueWorker;
 	networkService: INetworkService;
@@ -79,6 +80,7 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 	const grpcProvider = new GrpcProvider(grpc, protoLoader);
 	const webSocketProvider = new WebSocketProvider(WebSocket);
 	const dnsProvider = new DNSProvider(() => new Resolver());
+	const bgpProvider = new BgpProvider(new SshRouterCommandRunner());
 
 	const networkService = new NetworkService(axios, logger, [
 		pingProvider,
@@ -91,6 +93,7 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 		grpcProvider,
 		webSocketProvider,
 		dnsProvider,
+		bgpProvider,
 	]);
 
 	const bufferService = new BufferService(logger, checkService, geoChecksService, settingsService, jobsRepository);

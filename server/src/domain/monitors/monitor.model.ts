@@ -297,6 +297,39 @@ const MonitorSchema = new Schema<MonitorDocument>(
 			type: String,
 			enum: DnsRecordTypes,
 		},
+		bgpNeighbor: {
+			type: String,
+		},
+		bgpExpectedAsn: {
+			type: Number,
+		},
+		bgpVrf: {
+			type: String,
+		},
+		bgpRouterUsername: {
+			type: String,
+		},
+		bgpRouterPassword: {
+			type: String,
+		},
+		bgpRouterPort: {
+			type: Number,
+			default: 22,
+		},
+		bgpMinPrefixes: {
+			type: Number,
+		},
+		bgpMaxMed: {
+			type: Number,
+		},
+		bgpCheckMed: {
+			type: Boolean,
+			default: true,
+		},
+		bgpCheckPrefixes: {
+			type: Boolean,
+			default: false,
+		},
 		recentChecks: {
 			type: [checkSnapshotSchema],
 			default: [],

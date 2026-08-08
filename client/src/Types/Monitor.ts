@@ -16,6 +16,7 @@ export const MonitorTypes = [
 	"grpc",
 	"websocket",
 	"dns",
+	"bgp",
 	"unknown",
 ] as const;
 export type MonitorType = (typeof MonitorTypes)[number];
@@ -96,6 +97,16 @@ export interface Monitor {
 	geoCheckInterval?: number;
 	dnsServer?: string;
 	dnsRecordType?: DnsRecordType;
+	bgpNeighbor?: string;
+	bgpExpectedAsn?: number;
+	bgpVrf?: string;
+	bgpRouterUsername?: string;
+	bgpRouterPassword?: string;
+	bgpRouterPort?: number;
+	bgpMinPrefixes?: number;
+	bgpMaxMed?: number;
+	bgpCheckMed?: boolean;
+	bgpCheckPrefixes?: boolean;
 	recentChecks: CheckSnapshot[];
 	createdAt: string;
 	updatedAt: string;

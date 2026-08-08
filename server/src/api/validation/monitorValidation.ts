@@ -96,6 +96,44 @@ const refineHeadMatching = (body: { method?: string; useAdvancedMatching?: boole
 	}
 };
 
+const refineBgpFields = (body: { type?: string; bgpNeighbor?: string; bgpRouterUsername?: string; bgpRouterPassword?: string }, ctx: z.RefinementCtx) => {
+	if (body.type !== "bgp") return;
+	if (!body.bgpNeighbor || !/^\d{1,3}(\.\d{1,3}){3}$/.test(body.bgpNeighbor)) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["bgpNeighbor"],
+			message: "BGP neighbor IP is required for bgp monitors (e.g. 49.213.56.39)",
+		});
+	}
+	if (!body.bgpRouterUsername) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["bgpRouterUsername"],
+			message: "Router SSH username is required for bgp monitors",
+		});
+	}
+	if (!body.bgpRouterPassword) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["bgpRouterPassword"],
+			message: "Router SSH password is required for bgp monitors",
+		});
+	}
+};
+
+const bgpFieldsShape = {
+	bgpNeighbor: z.string().optional(),
+	bgpExpectedAsn: z.number().int().min(0).max(4294967295).optional(),
+	bgpVrf: z.union([z.string(), z.literal("")]).optional(),
+	bgpRouterUsername: z.string().optional(),
+	bgpRouterPassword: z.string().optional(),
+	bgpRouterPort: z.number().int().min(1).max(65535).optional(),
+	bgpMinPrefixes: z.number().int().min(0).optional(),
+	bgpMaxMed: z.number().int().min(0).optional(),
+	bgpCheckMed: z.boolean().optional(),
+	bgpCheckPrefixes: z.boolean().optional(),
+};
+
 export const createMonitorBodyValidation = z
 	.object({
 		_id: z.string().optional(),
@@ -132,11 +170,13 @@ export const createMonitorBodyValidation = z
 		geoCheckInterval: z.number().min(300000).optional(),
 		dnsServer: dnsServerValidation.optional(),
 		dnsRecordType: z.enum(DnsRecordTypes).optional(),
+		...bgpFieldsShape,
 	})
 	.superRefine(refineDnsHostname)
 	.superRefine(refineStrategyType)
 	.superRefine(refineHeadMatching)
-	.superRefine(refineRegexPattern);
+	.superRefine(refineRegexPattern)
+	.superRefine(refineBgpFields);
 
 export const editMonitorBodyValidation = z
 	.object({
@@ -172,6 +212,7 @@ export const editMonitorBodyValidation = z
 		geoCheckInterval: z.number().min(300000).optional(),
 		dnsServer: dnsServerValidation.optional(),
 		dnsRecordType: z.enum(DnsRecordTypes).optional(),
+		...bgpFieldsShape,
 	})
 	.superRefine(refineDnsHostname)
 	.superRefine(refineStrategyType)

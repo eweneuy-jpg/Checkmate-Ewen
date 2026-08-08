@@ -31,7 +31,7 @@ export const HttpStatusCodes = [
 export const HttpStatusCodeSet = new Set(HttpStatusCodes);
 export type HttpStatusCode = number;
 
-export const MonitorTypes = ["http", "ping", "pagespeed", "hardware", "docker", "port", "game", "grpc", "websocket", "dns", "unknown"] as const;
+export const MonitorTypes = ["http", "ping", "pagespeed", "hardware", "docker", "port", "game", "grpc", "websocket", "dns", "bgp", "unknown"] as const;
 export type MonitorType = (typeof MonitorTypes)[number];
 
 export const PageSpeedStrategies = ["desktop", "mobile"] as const;
@@ -50,6 +50,7 @@ export const UptimeDetailsSupportedTypes = [
 	"grpc",
 	"websocket",
 	"dns",
+	"bgp",
 ] as const satisfies readonly MonitorType[];
 export type UptimeDetailsSupportedType = (typeof UptimeDetailsSupportedTypes)[number];
 export const supportsUptimeDetails = (type: MonitorType): type is UptimeDetailsSupportedType => UptimeDetailsSupportedTypes.some((t) => t === type);
@@ -112,6 +113,17 @@ export interface Monitor {
 	geoCheckInterval?: number;
 	dnsServer?: string;
 	dnsRecordType?: DnsRecordType;
+	/** BGP monitor fields (type === "bgp") */
+	bgpNeighbor?: string;
+	bgpExpectedAsn?: number;
+	bgpVrf?: string;
+	bgpRouterUsername?: string;
+	bgpRouterPassword?: string;
+	bgpRouterPort?: number;
+	bgpMinPrefixes?: number;
+	bgpMaxMed?: number;
+	bgpCheckMed?: boolean;
+	bgpCheckPrefixes?: boolean;
 	recentChecks: CheckSnapshot[];
 	createdAt: string;
 	updatedAt: string;

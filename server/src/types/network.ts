@@ -19,6 +19,7 @@ export interface MonitorStatusResponse<
 	T =
 		| HttpStatusPayload
 		| PingStatusPayload
+		| BgpStatusPayload
 		| PageSpeedStatusPayload
 		| HardwareStatusPayload
 		| DockerStatusPayload
@@ -123,6 +124,35 @@ export interface DNSStatusPayload {
 	results: unknown;
 }
 
+export interface BgpNeighborState {
+	neighbor: string;
+	asn: number;
+	state: string;
+	prefixesReceived: number;
+	upDown: string;
+}
+
+export interface BgpRouteAnomaly {
+	prefix: string;
+	med: number;
+	localPref?: number;
+	asPath?: string;
+	reason: string;
+}
+
+export interface BgpStatusPayload {
+	router: string;
+	neighbor: string;
+	sessionUp: boolean;
+	sessionState: string;
+	asn?: number;
+	prefixesReceived?: number;
+	upDown?: string;
+	anomalies: BgpRouteAnomaly[];
+	checkedRules: string[];
+	raw?: string;
+}
+
 export interface MonitorPayloadMap {
 	ping: PingStatusPayload;
 	http: HttpStatusPayload;
@@ -134,6 +164,7 @@ export interface MonitorPayloadMap {
 	grpc: GrpcStatusPayload;
 	websocket: WebSocketStatusPayload;
 	dns: DNSStatusPayload;
+	bgp: BgpStatusPayload;
 	unknown: unknown;
 }
 
