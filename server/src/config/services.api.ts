@@ -4,6 +4,8 @@ import { IMaintenanceWindowService, MaintenanceWindowService } from "@/domain/ma
 import { IMonitorService, MonitorService } from "@/domain/monitors/monitor.service.js";
 import { IStatusPageService, StatusPageService } from "@/domain/status-pages/status-page.service.js";
 import { ITagsService, TagsService } from "@/domain/tags/tag.service.js";
+import { TopologyService } from "@/domain/topology/topology.service.js";
+import { ITopologyService } from "@/domain/topology/topology.type.js";
 import { IUserService, UserService } from "@/domain/users/user.service.js";
 import { IJobScheduler } from "@/worker/worker.interface.js";
 
@@ -22,6 +24,7 @@ export interface ApiServices extends SharedServices {
 	inviteService: IInviteService;
 	statusPageService: IStatusPageService;
 	tagsService: ITagsService;
+	topologyService: ITopologyService;
 	diagnosticService: IDiagnosticService;
 }
 
@@ -93,6 +96,7 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 
 	const statusPageService = new StatusPageService(statusPagesRepository, settingsService, monitorsRepository);
 	const tagsService = new TagsService(tagsRepository, monitorsRepository);
+	const topologyService = new TopologyService({ monitorsRepository });
 	const diagnosticService = new DiagnosticService(db);
 
 	return {
@@ -104,6 +108,7 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 		inviteService,
 		statusPageService,
 		tagsService,
+		topologyService,
 		diagnosticService,
 	};
 };

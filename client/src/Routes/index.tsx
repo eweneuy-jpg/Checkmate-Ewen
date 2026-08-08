@@ -39,6 +39,9 @@ import CreateNotifications from "@/Pages/Notifications/create";
 import Tags from "@/Pages/Tags";
 import CreateTags from "@/Pages/Tags/create";
 
+// Topology
+import Topology from "@/Pages/Topology";
+
 // Settings
 import Account from "@/Pages/Account";
 import EditUser from "@/Pages/Account/EditUser";
@@ -183,6 +186,10 @@ const Routes = () => {
 				<Route
 					path="tags"
 					element={<Tags />}
+				/>
+				<Route
+					path="topology"
+					element={<Topology />}
 				/>
 				<Route
 					path="tags/create"

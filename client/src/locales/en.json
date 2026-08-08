@@ -206,7 +206,8 @@
 				"statusPages": "Status pages",
 				"maintenance": "Maintenance",
 				"logs": "Logs",
-				"settings": "Settings"
+				"settings": "Settings",
+				"topology": "Topology"
 			},
 			"bottomMenu": {
 				"support": "Support",
@@ -1669,6 +1670,12 @@
 			"header": {
 				"title": "Uptime monitors",
 				"description": "Watch HTTP endpoints, pings, containers, and ports — and get alerted the moment something goes down."
+			}
+		},
+		"topology": {
+			"fallback": {
+				"title": "Network topology",
+				"description": "Live map of your monitored network — colored by current status"
 			}
 		}
 	}
