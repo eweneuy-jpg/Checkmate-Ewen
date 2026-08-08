@@ -15,6 +15,11 @@
   session-state, asn-match, min-prefixes, **med-validity** (deteksi MED
   4294967295), routes-received. 14 unit test dari output router produksi.
   → commit `ea88ed3`
+- [x] **SSH-command monitor** (`type: ssh-command`) — command CLI bebas via SSH
+  + evaluasi output 4 metode (contains / not-contains / regex RE2 multiline /
+  json-path JMESPath untuk `| json` NX-OS). Runner SSH dipakai bersama dengan
+  BGP provider. 14 unit test dari output Nexus Eth2/21 nyata.
+  → commit `e60637f`
 
 ---
 
@@ -24,7 +29,7 @@
 
 | # | Fitur | Deskripsi | Basis kode |
 |---|-------|-----------|------------|
-| 1.1 | **`ssh-command` monitor** | Generalisasi BgpProvider: command SSH bebas + evaluasi output (regex / expected string / JSONPath). Membuka: interface errors, OSPF/HSRP state, `show environment` suhu/power. | `IRouterCommandRunner` sudah ada — refactor jadi provider generik |
+
 | 1.2 | **SNMP monitor** | Interface up/down, bandwidth, error counters, CPU/mem perangkat (Cisco/Huawei/FortiGate). Library: `net-snmp`. Fitur NMS paling fundamental. | Provider baru, pola sama |
 | 1.3 | **Traceroute / path-change detection** | Simpan hop-by-hop path, alert saat path berubah → deteksi perubahan policy routing & asimetri (pola Isu B). | Provider baru (system `mtr`/`traceroute`) |
 | 1.4 | **Multi-vantage agent** | Agent ringan per segmen (VLAN user vs VLAN DC) ping target yang sama → otomatis menjawab "down di user, up di DC?" | Extend geo-checks yang sudah ada |
