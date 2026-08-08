@@ -134,6 +134,40 @@ const bgpFieldsShape = {
 	bgpCheckPrefixes: z.boolean().optional(),
 };
 
+const refineSshCommandFields = (body: { type?: string; sshCommand?: string; sshUsername?: string; sshPassword?: string }, ctx: z.RefinementCtx) => {
+	if (body.type !== "ssh-command") return;
+	if (!body.sshCommand || body.sshCommand.trim() === "") {
+		ctx.addIssue({
+			code: "custom",
+			path: ["sshCommand"],
+			message: "Command is required for ssh-command monitors (e.g. show interface Eth2/21)",
+		});
+	}
+	if (!body.sshUsername) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["sshUsername"],
+			message: "SSH username is required for ssh-command monitors",
+		});
+	}
+	if (!body.sshPassword) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["sshPassword"],
+			message: "SSH password is required for ssh-command monitors",
+		});
+	}
+};
+
+const sshCommandFieldsShape = {
+	sshCommand: z.string().optional(),
+	sshUsername: z.string().optional(),
+	sshPassword: z.string().optional(),
+	sshPort: z.number().int().min(1).max(65535).optional(),
+	sshMatchMethod: z.enum(["contains", "not-contains", "regex", "json-path"]).optional(),
+	sshExpectedValue: z.string().optional(),
+};
+
 export const createMonitorBodyValidation = z
 	.object({
 		_id: z.string().optional(),
@@ -171,12 +205,14 @@ export const createMonitorBodyValidation = z
 		dnsServer: dnsServerValidation.optional(),
 		dnsRecordType: z.enum(DnsRecordTypes).optional(),
 		...bgpFieldsShape,
+		...sshCommandFieldsShape,
 	})
 	.superRefine(refineDnsHostname)
 	.superRefine(refineStrategyType)
 	.superRefine(refineHeadMatching)
 	.superRefine(refineRegexPattern)
-	.superRefine(refineBgpFields);
+	.superRefine(refineBgpFields)
+	.superRefine(refineSshCommandFields);
 
 export const editMonitorBodyValidation = z
 	.object({
@@ -213,6 +249,7 @@ export const editMonitorBodyValidation = z
 		dnsServer: dnsServerValidation.optional(),
 		dnsRecordType: z.enum(DnsRecordTypes).optional(),
 		...bgpFieldsShape,
+		...sshCommandFieldsShape,
 	})
 	.superRefine(refineDnsHostname)
 	.superRefine(refineStrategyType)

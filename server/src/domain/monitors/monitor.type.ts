@@ -31,7 +31,7 @@ export const HttpStatusCodes = [
 export const HttpStatusCodeSet = new Set(HttpStatusCodes);
 export type HttpStatusCode = number;
 
-export const MonitorTypes = ["http", "ping", "pagespeed", "hardware", "docker", "port", "game", "grpc", "websocket", "dns", "bgp", "unknown"] as const;
+export const MonitorTypes = ["http", "ping", "pagespeed", "hardware", "docker", "port", "game", "grpc", "websocket", "dns", "bgp", "ssh-command", "unknown"] as const;
 export type MonitorType = (typeof MonitorTypes)[number];
 
 export const PageSpeedStrategies = ["desktop", "mobile"] as const;
@@ -51,6 +51,7 @@ export const UptimeDetailsSupportedTypes = [
 	"websocket",
 	"dns",
 	"bgp",
+	"ssh-command",
 ] as const satisfies readonly MonitorType[];
 export type UptimeDetailsSupportedType = (typeof UptimeDetailsSupportedTypes)[number];
 export const supportsUptimeDetails = (type: MonitorType): type is UptimeDetailsSupportedType => UptimeDetailsSupportedTypes.some((t) => t === type);
@@ -60,6 +61,9 @@ export type MonitorStatus = (typeof MonitorStatuses)[number];
 
 export const MonitorMatchMethods = ["equal", "include", "regex"] as const;
 export type MonitorMatchMethod = (typeof MonitorMatchMethods)[number] | "";
+
+export const SshMatchMethods = ["contains", "not-contains", "regex", "json-path"] as const;
+export type SshMatchMethod = (typeof SshMatchMethods)[number];
 
 export const DnsRecordTypes = ["A", "AAAA", "CNAME", "MX", "TXT", "NS"] as const;
 export type DnsRecordType = (typeof DnsRecordTypes)[number];
@@ -124,6 +128,13 @@ export interface Monitor {
 	bgpMaxMed?: number;
 	bgpCheckMed?: boolean;
 	bgpCheckPrefixes?: boolean;
+	/** SSH-command monitor fields (type === "ssh-command") */
+	sshCommand?: string;
+	sshUsername?: string;
+	sshPassword?: string;
+	sshPort?: number;
+	sshMatchMethod?: SshMatchMethod;
+	sshExpectedValue?: string;
 	recentChecks: CheckSnapshot[];
 	createdAt: string;
 	updatedAt: string;

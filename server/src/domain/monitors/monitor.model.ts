@@ -330,6 +330,27 @@ const MonitorSchema = new Schema<MonitorDocument>(
 			type: Boolean,
 			default: false,
 		},
+		sshCommand: {
+			type: String,
+		},
+		sshUsername: {
+			type: String,
+		},
+		sshPassword: {
+			type: String,
+		},
+		sshPort: {
+			type: Number,
+			default: 22,
+		},
+		sshMatchMethod: {
+			type: String,
+			enum: ["contains", "not-contains", "regex", "json-path"],
+			default: "contains",
+		},
+		sshExpectedValue: {
+			type: String,
+		},
 		recentChecks: {
 			type: [checkSnapshotSchema],
 			default: [],

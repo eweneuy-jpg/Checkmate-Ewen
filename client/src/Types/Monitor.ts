@@ -17,6 +17,7 @@ export const MonitorTypes = [
 	"websocket",
 	"dns",
 	"bgp",
+	"ssh-command",
 	"unknown",
 ] as const;
 export type MonitorType = (typeof MonitorTypes)[number];
@@ -107,6 +108,12 @@ export interface Monitor {
 	bgpMaxMed?: number;
 	bgpCheckMed?: boolean;
 	bgpCheckPrefixes?: boolean;
+	sshCommand?: string;
+	sshUsername?: string;
+	sshPassword?: string;
+	sshPort?: number;
+	sshMatchMethod?: "contains" | "not-contains" | "regex" | "json-path";
+	sshExpectedValue?: string;
 	recentChecks: CheckSnapshot[];
 	createdAt: string;
 	updatedAt: string;

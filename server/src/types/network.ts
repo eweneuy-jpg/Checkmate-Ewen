@@ -20,6 +20,7 @@ export interface MonitorStatusResponse<
 		| HttpStatusPayload
 		| PingStatusPayload
 		| BgpStatusPayload
+		| SshCommandStatusPayload
 		| PageSpeedStatusPayload
 		| HardwareStatusPayload
 		| DockerStatusPayload
@@ -153,6 +154,17 @@ export interface BgpStatusPayload {
 	raw?: string;
 }
 
+export interface SshCommandStatusPayload {
+	host: string;
+	command: string;
+	matchMethod: string;
+	matched: boolean;
+	extracted?: unknown;
+	/** Output CLI dipangkas agar payload tetap ringan. */
+	outputPreview: string;
+	exitOk: boolean;
+}
+
 export interface MonitorPayloadMap {
 	ping: PingStatusPayload;
 	http: HttpStatusPayload;
@@ -165,6 +177,7 @@ export interface MonitorPayloadMap {
 	websocket: WebSocketStatusPayload;
 	dns: DNSStatusPayload;
 	bgp: BgpStatusPayload;
+	"ssh-command": SshCommandStatusPayload;
 	unknown: unknown;
 }
 

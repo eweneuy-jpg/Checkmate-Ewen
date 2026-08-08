@@ -39,7 +39,9 @@ import { GameProvider } from "@/service/network/GameProvider.js";
 import { GrpcProvider } from "@/service/network/GrpcProvider.js";
 import { WebSocketProvider } from "@/service/network/WebSocketProvider.js";
 import { DNSProvider } from "@/service/network/DNSProvider.js";
-import { BgpProvider, SshRouterCommandRunner } from "@/service/network/BgpProvider.js";
+import { BgpProvider } from "@/service/network/BgpProvider.js";
+import { SshRouterCommandRunner } from "@/service/network/sshRunner.js";
+import { SshCommandProvider } from "@/service/network/SshCommandProvider.js";
 export interface WorkerServices {
 	worker: IQueueWorker;
 	networkService: INetworkService;
@@ -80,7 +82,9 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 	const grpcProvider = new GrpcProvider(grpc, protoLoader);
 	const webSocketProvider = new WebSocketProvider(WebSocket);
 	const dnsProvider = new DNSProvider(() => new Resolver());
-	const bgpProvider = new BgpProvider(new SshRouterCommandRunner());
+	const sshRunner = new SshRouterCommandRunner();
+	const bgpProvider = new BgpProvider(sshRunner);
+	const sshCommandProvider = new SshCommandProvider(sshRunner);
 
 	const networkService = new NetworkService(axios, logger, [
 		pingProvider,
@@ -94,6 +98,7 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 		webSocketProvider,
 		dnsProvider,
 		bgpProvider,
+		sshCommandProvider,
 	]);
 
 	const bufferService = new BufferService(logger, checkService, geoChecksService, settingsService, jobsRepository);

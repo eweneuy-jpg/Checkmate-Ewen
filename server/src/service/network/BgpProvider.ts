@@ -3,7 +3,7 @@ import { IStatusProvider } from "./IStatusProvider.js";
 import { MonitorType, Monitor } from "@/domain/monitors/monitor.type.js";
 import { MonitorStatusResponse } from "@/types/network.js";
 import { NETWORK_ERROR } from "@/types/network.js";
-import { Client } from "ssh2";
+import { IRouterCommandRunner } from "./sshRunner.js";
 
 const SERVICE_NAME = "BgpProvider";
 
@@ -15,59 +15,7 @@ export const BGP_MED_INVALID = 4294967295;
 /** Ambang default: MED di atas nilai ini dianggap anomali. */
 export const BGP_DEFAULT_MAX_MED = 1000000;
 
-/** Abstraksi eksekusi perintah di router — di-inject agar bisa di-mock saat test. */
-export interface IRouterCommandRunner {
-	exec(host: string, port: number, username: string, password: string, command: string): Promise<string>;
-}
-
-/** Runner produksi: SSH ke router (Cisco IOS-XE / IOS-XR / NX-OS style CLI). */
-export class SshRouterCommandRunner implements IRouterCommandRunner {
-	constructor(private timeoutMs = 15000) {}
-
-	exec(host: string, port: number, username: string, password: string, command: string): Promise<string> {
-		return new Promise((resolve, reject) => {
-			const conn = new Client();
-			let output = "";
-			let settled = false;
-
-			const done = (err: Error | null, data = "") => {
-				if (settled) return;
-				settled = true;
-				try {
-					conn.end();
-				} catch {
-					/* noop */
-				}
-				if (err) reject(err);
-				else resolve(data);
-			};
-
-			const timer = setTimeout(() => done(new Error(`SSH timeout after ${this.timeoutMs}ms`)), this.timeoutMs);
-
-			conn.on("ready", () => {
-				conn.exec(`${command}\n`, (err, stream) => {
-					if (err) {
-						clearTimeout(timer);
-						return done(err);
-					}
-					stream
-						.on("data", (d: Buffer) => (output += d.toString()))
-						.on("close", () => {
-							clearTimeout(timer);
-							done(null, output);
-						})
-						.stderr.on("data", () => {});
-					stream.end("exit\n");
-				});
-			})
-				.on("error", (err) => {
-					clearTimeout(timer);
-					done(err);
-				})
-				.connect({ host, port, username, password, readyTimeout: this.timeoutMs });
-		});
-	}
-}
+export type { IRouterCommandRunner } from "./sshRunner.js";
 
 /**
  * Parser output `show ip bgp [vpnv4 vrf X] summary` gaya Cisco IOS-XE.
