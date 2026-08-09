@@ -62,42 +62,42 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # The hosted staging/prod instances share one host and one compose file; each
-  # deploy pulls and recreates only its own service.
-  deploy-staging:
-    needs: build-and-push
-    if: github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy staging.checkmate.so
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.DEMO_SERVER_HOST }}
-          username: ${{ secrets.DEMO_SERVER_USER }}
-          key: ${{ secrets.DEMO_SERVER_SSH_KEY }}
-          script: |
-            cd checkmate
-            git pull
-            cd docs/hosting/checkmate-so
-            docker compose pull checkmate-staging
-            docker compose up -d checkmate-staging
-            docker system prune -af
-
-  deploy-prod:
-    needs: build-and-push
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy demo.checkmate.so
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.DEMO_SERVER_HOST }}
-          username: ${{ secrets.DEMO_SERVER_USER }}
-          key: ${{ secrets.DEMO_SERVER_SSH_KEY }}
-          script: |
-            cd checkmate
-            git pull
-            cd docs/hosting/checkmate-so
-            docker compose pull checkmate-demo
-            docker compose up -d checkmate-demo
-            docker system prune -af
+  # deploy-staging/deploy-prod disabled in fork: these target upstream's demo
+  # server (secrets.DEMO_SERVER_*). Enable only if you have your own deploy host.
+  # deploy-staging:
+  #   needs: build-and-push
+  #   if: github.ref == 'refs/heads/develop'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Deploy staging.checkmate.so
+  #       uses: appleboy/ssh-action@v1.2.2
+  #       with:
+  #         host: ${{ secrets.DEMO_SERVER_HOST }}
+  #         username: ${{ secrets.DEMO_SERVER_USER }}
+  #         key: ${{ secrets.DEMO_SERVER_SSH_KEY }}
+  #         script: |
+  #           cd checkmate
+  #           git pull
+  #           cd docs/hosting/checkmate-so
+  #           docker compose pull checkmate-staging
+  #           docker compose up -d checkmate-staging
+  #           docker system prune -af
+  #
+  # deploy-prod:
+  #   needs: build-and-push
+  #   if: github.ref == 'refs/heads/master'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Deploy demo.checkmate.so
+  #       uses: appleboy/ssh-action@v1.2.2
+  #       with:
+  #         host: ${{ secrets.DEMO_SERVER_HOST }}
+  #         username: ${{ secrets.DEMO_SERVER_USER }}
+  #         key: ${{ secrets.DEMO_SERVER_SSH_KEY }}
+  #         script: |
+  #           cd checkmate
+  #           git pull
+  #           cd docs/hosting/checkmate-so
+  #           docker compose pull checkmate-demo
+  #           docker compose up -d checkmate-demo
+  #           docker system prune -af
