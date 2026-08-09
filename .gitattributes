@@ -1,2 +1,26 @@
 * text=auto
 * text eol=lf
+
+# `* text eol=lf` above forces line-ending normalisation on every path, which
+# silently corrupts binaries that happen to contain CRLF bytes. Committing a
+# .docx lost 9 bytes and produced an unreadable zip; the tracked .gif files
+# survived only because they contain no CRLF sequences. Mark binaries -text.
+*.docx -text
+*.xlsx -text
+*.pptx -text
+*.pdf -text
+*.zip -text
+*.gz -text
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.gif -text
+*.ico -text
+*.webp -text
+*.woff -text
+*.woff2 -text
+*.ttf -text
+*.otf -text
+*.eot -text
+*.mp4 -text
+*.webm -text
