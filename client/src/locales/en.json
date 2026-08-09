@@ -1675,7 +1675,7 @@
 			}
 		},
 		"topology": {
-			"fallback": {
+			"header": {
 				"title": "Network topology",
 				"description": "Live map of your monitored network — colored by current status"
 			}
