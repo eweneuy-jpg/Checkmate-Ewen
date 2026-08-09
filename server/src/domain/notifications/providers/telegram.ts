@@ -72,6 +72,30 @@ export class TelegramProvider extends NotificationProvider {
 		}
 	}
 
+	async sendWeeklyReport(notification: Notification, html: string): Promise<boolean> {
+		if (!notification.address || !notification.accessToken) {
+			return false;
+		}
+
+		try {
+			await got.post(`https://api.telegram.org/bot${notification.accessToken}/sendMessage`, {
+				json: {
+					chat_id: notification.address,
+					text: html,
+					parse_mode: "HTML",
+					disable_web_page_preview: true,
+				},
+				...this.gotRequestOptions(),
+			});
+			this.logger.info({ message: "Telegram weekly report sent", service: SERVICE_NAME, method: "sendWeeklyReport" });
+			return true;
+		} catch (error) {
+			const errMsg = error instanceof Error ? error.message : "unknown error";
+			this.logger.warn({ message: "Telegram weekly report failed", service: SERVICE_NAME, method: "sendWeeklyReport", details: { error: errMsg } });
+			return false;
+		}
+	}
+
 	private buildTelegramText(message: NotificationMessage): string {
 		const lines: string[] = [];
 
