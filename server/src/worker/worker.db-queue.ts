@@ -177,6 +177,9 @@ export class DBQueueWorker extends JobScheduler implements IQueueWorker {
 				case "cleanup-retention":
 					await this.helper.getCleanupRetentionJob()(); // Get job and execute
 					break;
+				case "weekly-report":
+					await this.helper.getWeeklyReportJob()(); // Get job and execute
+					break;
 			}
 
 			if (job.intervalMs === null) {

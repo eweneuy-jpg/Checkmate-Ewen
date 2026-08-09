@@ -8,12 +8,14 @@ import { IIncidentsRepository } from "@/domain/incidents/incident.repository.int
 import { IMonitorStatsRepository } from "@/domain/monitor-stats/monitor-stats.repository.interface.js";
 import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
 import { IJobsRepository } from "@/domain/jobs/job.repository.interface.js";
+import { IReportService } from "@/domain/reports/report.type.js";
 import { ITeamsRepository } from "@/domain/teams/team.repository.interface.js";
 import { ILogger } from "@/utils/logger.js";
 
 export interface IWorkerHelper {
 	getCleanupOrphanedJob(): () => Promise<void>;
 	getCleanupRetentionJob(): () => Promise<void>;
+	getWeeklyReportJob(): () => Promise<void>;
 }
 
 export interface MonitorActionDecision {
@@ -43,6 +45,7 @@ export class WorkerHelper implements IWorkerHelper {
 	private checksRepository: IChecksRepository;
 	private incidentsRepository: IIncidentsRepository;
 	private geoChecksRepository: IGeoChecksRepository;
+	private reportService: IReportService;
 
 	constructor(
 		logger: ILogger,
@@ -54,7 +57,8 @@ export class WorkerHelper implements IWorkerHelper {
 		monitorStatsRepository: IMonitorStatsRepository,
 		checksRepository: IChecksRepository,
 		incidentsRepository: IIncidentsRepository,
-		geoChecksRepository: IGeoChecksRepository
+		geoChecksRepository: IGeoChecksRepository,
+		reportService: IReportService
 	) {
 		this.logger = logger;
 		this.checkService = checkService;
@@ -66,6 +70,7 @@ export class WorkerHelper implements IWorkerHelper {
 		this.checksRepository = checksRepository;
 		this.incidentsRepository = incidentsRepository;
 		this.geoChecksRepository = geoChecksRepository;
+		this.reportService = reportService;
 	}
 
 	getCleanupOrphanedJob = () => {
@@ -199,6 +204,48 @@ export class WorkerHelper implements IWorkerHelper {
 					method: "getCleanupRetentionJob",
 					stack: error instanceof Error ? error.stack : undefined,
 				});
+			}
+		};
+	};
+
+	getWeeklyReportJob = () => {
+		return async () => {
+			try {
+				const teamIds = await this.teamsRepository.findAllTeamIds();
+				this.logger.info({
+					message: `Publishing weekly report for ${teamIds.length} teams`,
+					service: SERVICE_NAME,
+					method: "getWeeklyReportJob",
+				});
+
+				let deliveredCount = 0;
+				for (const teamId of teamIds) {
+					// One team's Telegram outage must not stop the remaining teams
+					try {
+						deliveredCount += await this.reportService.publishWeeklyReport(teamId);
+					} catch (error: unknown) {
+						this.logger.warn({
+							message: error instanceof Error ? error.message : "Unknown error",
+							service: SERVICE_NAME,
+							method: "getWeeklyReportJob",
+							details: { teamId },
+						});
+					}
+				}
+
+				this.logger.info({
+					message: `Weekly report delivered to ${deliveredCount} Telegram targets`,
+					service: SERVICE_NAME,
+					method: "getWeeklyReportJob",
+				});
+			} catch (error: unknown) {
+				this.logger.warn({
+					message: error instanceof Error ? error.message : "Unknown error",
+					service: SERVICE_NAME,
+					method: "getWeeklyReportJob",
+					stack: error instanceof Error ? error.stack : undefined,
+				});
+				throw error; // systemic failure, record it on the job row
 			}
 		};
 	};

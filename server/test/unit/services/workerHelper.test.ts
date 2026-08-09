@@ -38,6 +38,10 @@ const createHelper = (overrides?: Record<string, unknown>) => {
 	const checkService = {
 		deleteOlderThan: jest.fn().mockResolvedValue(0),
 	};
+	const reportService = {
+		generateWeeklyReport: jest.fn().mockResolvedValue({}),
+		publishWeeklyReport: jest.fn().mockResolvedValue(1),
+	};
 
 	const defaults = {
 		logger: createMockLogger(),
@@ -50,6 +54,7 @@ const createHelper = (overrides?: Record<string, unknown>) => {
 		checksRepository,
 		incidentsRepository,
 		geoChecksRepository,
+		reportService,
 		...overrides,
 	};
 
@@ -63,7 +68,8 @@ const createHelper = (overrides?: Record<string, unknown>) => {
 		defaults.monitorStatsRepository as any,
 		defaults.checksRepository as any,
 		defaults.incidentsRepository as any,
-		defaults.geoChecksRepository as any
+		defaults.geoChecksRepository as any,
+		defaults.reportService as any
 	);
 	return { helper, defaults };
 };
@@ -174,6 +180,46 @@ describe("WorkerHelper", () => {
 			await job();
 
 			expect(defaults.logger.error).toHaveBeenCalledWith(expect.objectContaining({ message: "Unknown error", stack: undefined }));
+		});
+	});
+
+	// ── getWeeklyReportJob ───────────────────────────────────────────────────
+
+	describe("getWeeklyReportJob", () => {
+		it("publishes the report for every team", async () => {
+			const { helper, defaults } = createHelper({
+				teamsRepository: { findAllTeamIds: jest.fn().mockResolvedValue(["team1", "team2"]) },
+			});
+			const job = helper.getWeeklyReportJob();
+			await job();
+
+			expect(defaults.reportService.publishWeeklyReport).toHaveBeenCalledTimes(2);
+			expect(defaults.reportService.publishWeeklyReport).toHaveBeenCalledWith("team1");
+			expect(defaults.reportService.publishWeeklyReport).toHaveBeenCalledWith("team2");
+			expect(defaults.logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("delivered to 2") }));
+		});
+
+		it("keeps publishing when one team fails", async () => {
+			const publishWeeklyReport = jest.fn().mockRejectedValueOnce(new Error("telegram down")).mockResolvedValueOnce(3);
+			const { helper, defaults } = createHelper({
+				teamsRepository: { findAllTeamIds: jest.fn().mockResolvedValue(["team1", "team2"]) },
+				reportService: { generateWeeklyReport: jest.fn(), publishWeeklyReport },
+			});
+			const job = helper.getWeeklyReportJob();
+			await job();
+
+			expect(publishWeeklyReport).toHaveBeenCalledTimes(2);
+			expect(defaults.logger.warn).toHaveBeenCalledWith(expect.objectContaining({ message: "telegram down", details: { teamId: "team1" } }));
+			expect(defaults.logger.info).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("delivered to 3") }));
+		});
+
+		it("rethrows when the team lookup itself fails", async () => {
+			const { helper } = createHelper({
+				teamsRepository: { findAllTeamIds: jest.fn().mockRejectedValue(new Error("db error")) },
+			});
+			const job = helper.getWeeklyReportJob();
+
+			await expect(job()).rejects.toThrow("db error");
 		});
 	});
 });

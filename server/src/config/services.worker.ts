@@ -26,6 +26,8 @@ import { NotificationReactor } from "@/worker/reactors/reactor.notification.js";
 import { IncidentReactor } from "@/worker/reactors/reactor.incident.js";
 import { ReactorDispatcher } from "@/worker/reactors/reactor.dispatcher.js";
 import { DBQueueWorker } from "@/worker/worker.db-queue.js";
+import { WeeklyReportService } from "@/domain/reports/report.service.js";
+import { TelegramProvider } from "@/domain/notifications/providers/telegram.js";
 
 // Network providers
 import { PingProvider } from "@/service/network/PingProvider.js";
@@ -66,6 +68,7 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 		monitorStatsRepository,
 		incidentsRepository,
 		teamsRepository,
+		notificationsRepository,
 		maintenanceWindowsRepository,
 	} = shared;
 
@@ -126,6 +129,8 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 	// Worker
 	// ***********************
 
+	const reportService = new WeeklyReportService(checksRepository, monitorsRepository, notificationsRepository, new TelegramProvider(logger), logger);
+
 	const workerHelper = new WorkerHelper(
 		logger,
 		checkService,
@@ -136,7 +141,8 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 		monitorStatsRepository,
 		checksRepository,
 		incidentsRepository,
-		geoChecksRepository
+		geoChecksRepository,
+		reportService
 	);
 
 	const worker = await DBQueueWorker.create({

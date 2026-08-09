@@ -13,6 +13,7 @@ export const POLL_MS = 250; // base poll interval while a loop is actively claim
 const SERVICE_NAME = "JobScheduler";
 const HEARTBEAT_MS = WORKER_STALE_MS / 3; // Worker can miss two beats without being considered stale
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const WEEKLY_REPORT_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export class JobScheduler implements IJobScheduler {
 	static SERVICE_NAME = SERVICE_NAME;
@@ -67,6 +68,17 @@ export class JobScheduler implements IJobScheduler {
 		isActive: true,
 		nextScheduledAt: now,
 		intervalMs: CLEANUP_INTERVAL_MS,
+	});
+
+	// Global row (refId null), seeded one week out. Unlike cleanup it goes through upsertJob so
+	// nextScheduledAt is $setOnInsert only — a restart must never re-fire the report to Telegram.
+	protected toWeeklyReportJob = (now: number): JobSeed => ({
+		id: jobId("weekly-report", null),
+		type: "weekly-report",
+		refId: null,
+		isActive: true,
+		nextScheduledAt: now + WEEKLY_REPORT_INTERVAL_MS,
+		intervalMs: WEEKLY_REPORT_INTERVAL_MS,
 	});
 
 	private toSummary = (job: Job): WorkerJobSummary => ({
@@ -198,6 +210,8 @@ export class JobScheduler implements IJobScheduler {
 		// Both cleanup jobs run immediately on every startup, then once a day
 		await this.jobsRepository.upsertCleanupJob(this.toCleanupJob("cleanup-orphaned", now));
 		await this.jobsRepository.upsertCleanupJob(this.toCleanupJob("cleanup-retention", now));
+		// The weekly report keeps its own schedule across restarts
+		await this.jobsRepository.upsertJob(this.toWeeklyReportJob(now));
 	};
 
 	// Register worker

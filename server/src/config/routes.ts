@@ -57,4 +57,5 @@ export const setupRoutes = (app: Application, controllers: InitializedController
 	app.use("/api/v1/diagnostic", verifyJWT, diagnosticRoutes);
 	app.use("/api/v1/incidents", verifyJWT, incidentRoutes);
 	app.use("/api/v1/topology", verifyJWT, topologyRoutes);
+	app.use("/api/v1/apm", verifyJWT, apmRoutes);
 };
