@@ -96,7 +96,10 @@ const refineHeadMatching = (body: { method?: string; useAdvancedMatching?: boole
 	}
 };
 
-const refineBgpFields = (body: { type?: string; bgpNeighbor?: string; bgpRouterUsername?: string; bgpRouterPassword?: string }, ctx: z.RefinementCtx) => {
+const refineBgpFields = (
+	body: { type?: string; bgpNeighbor?: string; bgpRouterUsername?: string; bgpRouterPassword?: string },
+	ctx: z.RefinementCtx
+) => {
 	if (body.type !== "bgp") return;
 	if (!body.bgpNeighbor || !/^\d{1,3}(\.\d{1,3}){3}$/.test(body.bgpNeighbor)) {
 		ctx.addIssue({

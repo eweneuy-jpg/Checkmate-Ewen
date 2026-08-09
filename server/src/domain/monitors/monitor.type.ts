@@ -31,7 +31,21 @@ export const HttpStatusCodes = [
 export const HttpStatusCodeSet = new Set(HttpStatusCodes);
 export type HttpStatusCode = number;
 
-export const MonitorTypes = ["http", "ping", "pagespeed", "hardware", "docker", "port", "game", "grpc", "websocket", "dns", "bgp", "ssh-command", "unknown"] as const;
+export const MonitorTypes = [
+	"http",
+	"ping",
+	"pagespeed",
+	"hardware",
+	"docker",
+	"port",
+	"game",
+	"grpc",
+	"websocket",
+	"dns",
+	"bgp",
+	"ssh-command",
+	"unknown",
+] as const;
 export type MonitorType = (typeof MonitorTypes)[number];
 
 export const PageSpeedStrategies = ["desktop", "mobile"] as const;

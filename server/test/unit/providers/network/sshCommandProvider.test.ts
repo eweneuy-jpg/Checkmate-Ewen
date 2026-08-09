@@ -120,9 +120,7 @@ describe("SshCommandProvider", () => {
 
 	it("reports down when interface is down (regex presisi)", async () => {
 		const provider = new SshCommandProvider(makeRunner(NXOS_INTERFACE_DOWN));
-		const res = await provider.handle(
-			makeMonitor({ sshMatchMethod: "regex", sshExpectedValue: "^Ethernet2/21 is up$" })
-		);
+		const res = await provider.handle(makeMonitor({ sshMatchMethod: "regex", sshExpectedValue: "^Ethernet2/21 is up$" }));
 		expect(res.status).toBe(false);
 		expect(res.payload?.matched).toBe(false);
 	});
@@ -142,7 +140,11 @@ describe("SshCommandProvider", () => {
 	});
 
 	it("propagates SSH connection failure as down status", async () => {
-		const failing: IRouterCommandRunner = { exec: async () => { throw new Error("SSH timeout after 15000ms"); } };
+		const failing: IRouterCommandRunner = {
+			exec: async () => {
+				throw new Error("SSH timeout after 15000ms");
+			},
+		};
 		const provider = new SshCommandProvider(failing);
 		const res = await provider.handle(makeMonitor());
 		expect(res.status).toBe(false);

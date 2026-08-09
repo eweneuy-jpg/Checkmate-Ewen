@@ -1,14 +1,6 @@
 import type { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
 import type { Monitor } from "@/domain/monitors/monitor.type.js";
-import {
-	ITopologyService,
-	TopologyEdge,
-	TopologyGraph,
-	TopologyNode,
-	TopologyNodeState,
-	mapStatusToNodeState,
-	subnet24Of,
-} from "./topology.type.js";
+import { ITopologyService, TopologyEdge, TopologyGraph, TopologyNode, TopologyNodeState, mapStatusToNodeState, subnet24Of } from "./topology.type.js";
 
 const SERVICE_NAME = "TopologyService";
 

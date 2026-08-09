@@ -150,9 +150,7 @@ describe("BgpProvider", () => {
 	});
 
 	it("detects Issue A: invalid MED from Cloudflare neighbor", async () => {
-		const provider = new BgpProvider(
-			makeRunner({ summary: BGP_SUMMARY_OUTPUT, routes: BGP_ROUTES_MED_INVALID })
-		);
+		const provider = new BgpProvider(makeRunner({ summary: BGP_SUMMARY_OUTPUT, routes: BGP_ROUTES_MED_INVALID }));
 		const res = await provider.handle(makeMonitor());
 		expect(res.status).toBe(false);
 		expect(res.message).toMatch(/MED anomali/);
@@ -161,9 +159,7 @@ describe("BgpProvider", () => {
 	});
 
 	it("reports up for healthy session", async () => {
-		const provider = new BgpProvider(
-			makeRunner({ summary: BGP_SUMMARY_OUTPUT, routes: BGP_ROUTES_HEALTHY })
-		);
+		const provider = new BgpProvider(makeRunner({ summary: BGP_SUMMARY_OUTPUT, routes: BGP_ROUTES_HEALTHY }));
 		const res = await provider.handle(makeMonitor());
 		expect(res.status).toBe(true);
 		expect(res.payload?.sessionUp).toBe(true);

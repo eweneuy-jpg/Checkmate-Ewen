@@ -1,4 +1,4 @@
-import type { Monitor, MonitorStatus, MonitorType } from "@/domain/monitors/monitor.type.js";
+import type { MonitorStatus, MonitorType } from "@/domain/monitors/monitor.type.js";
 
 /** Status visual node topologi — dipetakan dari MonitorStatus. */
 export type TopologyNodeState = "ok" | "down" | "paused" | "degraded" | "unknown";

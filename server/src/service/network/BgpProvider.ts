@@ -5,8 +5,6 @@ import { MonitorStatusResponse } from "@/types/network.js";
 import { NETWORK_ERROR } from "@/types/network.js";
 import { IRouterCommandRunner } from "./sshRunner.js";
 
-const SERVICE_NAME = "BgpProvider";
-
 /**
  * Nilai MED maksimum 32-bit — indikator rute yang di-invalidasi
  * (persis pola yang terlihat pada Isu A: MED 4294967295 dari AS13335).
@@ -25,8 +23,7 @@ export type { IRouterCommandRunner } from "./sshRunner.js";
  */
 export function parseBgpSummary(text: string): BgpNeighborState[] {
 	const neighbors: BgpNeighborState[] = [];
-	const lineRe =
-		/^\s*(\d{1,3}(?:\.\d{1,3}){3})\s+(\d)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s*$/;
+	const lineRe = /^\s*(\d{1,3}(?:\.\d{1,3}){3})\s+(\d)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s*$/;
 	for (const line of text.split(/\r?\n/)) {
 		const m = line.match(lineRe);
 		if (!m) continue;
@@ -53,8 +50,7 @@ export function parseBgpSummary(text: string): BgpNeighborState[] {
  */
 export function parseBgpNeighborRoutes(text: string): { prefix: string; med: number; localPref?: number; asPath?: string }[] {
 	const routes: { prefix: string; med: number; localPref?: number; asPath?: string }[] = [];
-	const re =
-		/^\s*\*?>?\s*(\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2})\s+\d{1,3}(?:\.\d{1,3}){3}\s+(\d+)\s*(\d+)?\s*\d*\s*([\d\s{}().]*?)\s*([ie?])?\s*$/;
+	const re = /^\s*\*?>?\s*(\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2})\s+\d{1,3}(?:\.\d{1,3}){3}\s+(\d+)\s*(\d+)?\s*\d*\s*([\d\s{}().]*?)\s*([ie?])?\s*$/;
 	for (const line of text.split(/\r?\n/)) {
 		const m = line.match(re);
 		if (!m) continue;
@@ -102,9 +98,7 @@ export function evaluateBgpRules(
 	}
 	if (neighbor.state !== "Established") {
 		up = false;
-		messages.push(
-			`Sesi BGP ${neighbor.neighbor} (AS${neighbor.asn}) status ${neighbor.state} (up/down: ${neighbor.upDown})`
-		);
+		messages.push(`Sesi BGP ${neighbor.neighbor} (AS${neighbor.asn}) status ${neighbor.state} (up/down: ${neighbor.upDown})`);
 	}
 
 	// Rule 2 — ASN harus sesuai ekspektasi (mis. 13335 untuk Cloudflare)
@@ -119,9 +113,7 @@ export function evaluateBgpRules(
 		checkedRules.push("min-prefixes");
 		if (neighbor.prefixesReceived < monitor.bgpMinPrefixes) {
 			up = false;
-			messages.push(
-				`Prefix diterima ${neighbor.prefixesReceived} < minimum ${monitor.bgpMinPrefixes}`
-			);
+			messages.push(`Prefix diterima ${neighbor.prefixesReceived} < minimum ${monitor.bgpMinPrefixes}`);
 		}
 	}
 
@@ -147,9 +139,7 @@ export function evaluateBgpRules(
 		if (anomalies.length > 0) {
 			up = false;
 			const first = anomalies[0]!;
-			messages.push(
-				`${anomalies.length} rute dengan MED anomali (contoh: ${first.prefix} MED=${first.med})`
-			);
+			messages.push(`${anomalies.length} rute dengan MED anomali (contoh: ${first.prefix} MED=${first.med})`);
 		}
 	}
 
@@ -180,9 +170,7 @@ export class BgpProvider implements IStatusProvider<BgpStatusPayload> {
 	private buildRoutesCommand(monitor: Monitor): string {
 		const vrf = monitor.bgpVrf?.trim();
 		const nei = monitor.bgpNeighbor!;
-		return vrf
-			? `show ip bgp vpnv4 vrf ${vrf} neighbors ${nei} routes`
-			: `show ip bgp neighbors ${nei} routes`;
+		return vrf ? `show ip bgp vpnv4 vrf ${vrf} neighbors ${nei} routes` : `show ip bgp neighbors ${nei} routes`;
 	}
 
 	async handle(monitor: Monitor): Promise<MonitorStatusResponse<BgpStatusPayload>> {

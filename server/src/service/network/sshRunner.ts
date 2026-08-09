@@ -29,22 +29,23 @@ export class SshRouterCommandRunner implements IRouterCommandRunner {
 
 			const timer = setTimeout(() => done(new Error(`SSH timeout after ${this.timeoutMs}ms`)), this.timeoutMs);
 
-			conn.on("ready", () => {
-				conn.exec(`${command}\n`, (err, stream) => {
-					if (err) {
-						clearTimeout(timer);
-						return done(err);
-					}
-					stream
-						.on("data", (d: Buffer) => (output += d.toString()))
-						.on("close", () => {
+			conn
+				.on("ready", () => {
+					conn.exec(`${command}\n`, (err, stream) => {
+						if (err) {
 							clearTimeout(timer);
-							done(null, output);
-						})
-						.stderr.on("data", () => {});
-					stream.end("exit\n");
-				});
-			})
+							return done(err);
+						}
+						stream
+							.on("data", (d: Buffer) => (output += d.toString()))
+							.on("close", () => {
+								clearTimeout(timer);
+								done(null, output);
+							})
+							.stderr.on("data", () => {});
+						stream.end("exit\n");
+					});
+				})
 				.on("error", (err) => {
 					clearTimeout(timer);
 					done(err);

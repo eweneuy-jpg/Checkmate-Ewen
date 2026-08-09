@@ -1,8 +1,6 @@
 import { ILogger } from "@/utils/logger.js";
 import { IChecksRepository } from "@/domain/checks/check.repository.interface.js";
 import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
-import type { Check } from "@/domain/checks/check.type.js";
-import type { Monitor } from "@/domain/monitors/monitor.type.js";
 import type { DateRange } from "@/types/query.js";
 import type {
 	IApmService,
@@ -58,24 +56,6 @@ const calcApdex = (times: number[], thresholdMs: number): ApdexScore => {
 	return { score, satisfied, tolerating, frustrated, totalSamples: times.length, thresholdMs };
 };
 
-const calcErrorRate = (checks: Check[]): ErrorRateMetrics => {
-	const httpChecks = checks.filter((c) => c.statusCode > 0);
-	const total = httpChecks.length;
-	if (total === 0) {
-		return { totalRequests: 0, clientErrors: 0, serverErrors: 0, errorRate: 0, availability: 1 };
-	}
-	const clientErrors = httpChecks.filter((c) => c.statusCode >= 400 && c.statusCode < 500).length;
-	const serverErrors = httpChecks.filter((c) => c.statusCode >= 500).length;
-	const errorRate = (clientErrors + serverErrors) / total;
-	return {
-		totalRequests: total,
-		clientErrors,
-		serverErrors,
-		errorRate,
-		availability: 1 - errorRate,
-	};
-};
-
 const calcThroughput = (totalChecks: number, dateRange: DateRange): ThroughputMetrics => {
 	const rangeMap: Record<DateRange, number> = {
 		recent: 30,
@@ -93,52 +73,28 @@ const calcThroughput = (totalChecks: number, dateRange: DateRange): ThroughputMe
 	};
 };
 
-const findSlowTransactions = (
-	checks: Check[],
-	monitor: Monitor,
-	thresholdMs: number,
-): SlowTransaction[] => {
-	const slowThreshold = thresholdMs * SLOW_THRESHOLD_MULTIPLIER;
-	return checks
-		.filter((c) => c.responseTime > slowThreshold)
-		.sort((a, b) => b.responseTime - a.responseTime)
-		.slice(0, 10)
-		.map((c) => ({
-			monitorId: monitor.id,
-			monitorName: monitor.name,
-			monitorUrl: monitor.url,
-			monitorType: monitor.type,
-			responseTime: c.responseTime,
-			statusCode: c.statusCode,
-			thresholdMs: slowThreshold,
-			createdAt: c.createdAt,
-		}));
-};
-
 export class ApmService implements IApmService {
 	constructor(
 		private checksRepository: IChecksRepository,
 		private monitorsRepository: IMonitorsRepository,
-		private logger: ILogger,
+		private logger: ILogger
 	) {}
 
 	async getMonitorApm(
 		monitorId: string,
 		teamId: string,
 		dateRange: DateRange,
-		apdexThresholdMs: number = DEFAULT_APDEX_THRESHOLD_MS,
+		apdexThresholdMs: number = DEFAULT_APDEX_THRESHOLD_MS
 	): Promise<MonitorApmMetrics> {
 		const monitor = await this.monitorsRepository.findById(monitorId, teamId);
 		if (!monitor) {
 			throw new Error(`Monitor ${monitorId} not found`);
 		}
 
-		// Fetch all checks for the range — reuse existing uptime path but we need raw checks
-		// For APM we need the actual check documents, not grouped aggregates.
-		// Use findUnevaluatedByMonitorId as a workaround, or better: add a dedicated repo method.
-		// For now, use the uptime result and synthesize from grouped data.
+		// Reuse the existing uptime path rather than scanning raw checks. True APM would need the
+		// individual check documents, which would mean a dedicated repository method.
 		const result = await this.checksRepository.findByDateRangeAndMonitorId(monitorId, dateRange, {
-			type: monitor.type as any,
+			type: monitor.type,
 		});
 
 		// Synthesize metrics from grouped data where possible
@@ -204,11 +160,7 @@ export class ApmService implements IApmService {
 		};
 	}
 
-	async getTeamApm(
-		teamId: string,
-		dateRange: DateRange,
-		apdexThresholdMs: number = DEFAULT_APDEX_THRESHOLD_MS,
-	): Promise<TeamApmSummary> {
+	async getTeamApm(teamId: string, dateRange: DateRange, apdexThresholdMs: number = DEFAULT_APDEX_THRESHOLD_MS): Promise<TeamApmSummary> {
 		const monitors = await this.monitorsRepository.findByTeamId(teamId, {});
 		const uptimeTypes = new Set(["http", "ping", "port", "dns", "bgp", "ssh-command", "game", "grpc", "websocket"]);
 

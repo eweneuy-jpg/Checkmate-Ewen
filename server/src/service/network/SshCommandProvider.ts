@@ -7,7 +7,6 @@ import { MonitorStatusResponse } from "@/types/network.js";
 import { NETWORK_ERROR } from "@/types/network.js";
 import { IRouterCommandRunner } from "./sshRunner.js";
 
-const SERVICE_NAME = "SshCommandProvider";
 /** Pangkas output CLI agar payload DB tidak membengkak. */
 const OUTPUT_PREVIEW_MAX = 2000;
 
@@ -34,18 +33,14 @@ export function evaluateSshOutput(monitor: Monitor, output: string): SshEvalResu
 			const matched = output.includes(expected);
 			return {
 				matched,
-				message: matched
-					? `Output memuat "${expected}"`
-					: `Output TIDAK memuat "${expected}"`,
+				message: matched ? `Output memuat "${expected}"` : `Output TIDAK memuat "${expected}"`,
 			};
 		}
 		case "not-contains": {
 			const matched = !output.includes(expected);
 			return {
 				matched,
-				message: matched
-					? `Output bersih dari "${expected}"`
-					: `Output mengandung string terlarang "${expected}"`,
+				message: matched ? `Output bersih dari "${expected}"` : `Output mengandung string terlarang "${expected}"`,
 			};
 		}
 		case "regex": {
@@ -77,9 +72,7 @@ export function evaluateSshOutput(monitor: Monitor, output: string): SshEvalResu
 			return {
 				matched,
 				extracted,
-				message: matched
-					? `Path "${expected}" → ${JSON.stringify(extracted)}`
-					: `Path "${expected}" tidak menghasilkan nilai`,
+				message: matched ? `Path "${expected}" → ${JSON.stringify(extracted)}` : `Path "${expected}" tidak menghasilkan nilai`,
 			};
 		}
 	}
@@ -113,13 +106,7 @@ export class SshCommandProvider implements IStatusProvider<SshCommandStatusPaylo
 				throw new Error("Kredensial SSH (sshUsername/sshPassword) wajib diisi");
 			}
 
-			const output = await this.runner.exec(
-				host,
-				monitor.sshPort ?? 22,
-				monitor.sshUsername,
-				monitor.sshPassword,
-				monitor.sshCommand
-			);
+			const output = await this.runner.exec(host, monitor.sshPort ?? 22, monitor.sshUsername, monitor.sshPassword, monitor.sshCommand);
 
 			const result = evaluateSshOutput(monitor, output);
 			const payload: SshCommandStatusPayload = {
