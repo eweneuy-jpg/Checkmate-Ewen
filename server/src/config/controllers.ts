@@ -13,6 +13,7 @@ import TagsController from "../api/controllers/tagController.js";
 import DiagnosticController from "../api/controllers/diagnosticController.js";
 import IncidentController from "../api/controllers/incidentController.js";
 import TopologyController from "../api/controllers/topologyController.js";
+import ApmController from "../api/controllers/apmController.js";
 import { ApiServices } from "@/config/services.api.js";
 
 export interface InitializedControllers {
@@ -31,6 +32,7 @@ export interface InitializedControllers {
 	diagnosticController: DiagnosticController;
 	incidentController: IncidentController;
 	topologyController: TopologyController;
+	apmController: ApmController;
 }
 export const initializeControllers = (apiServices: ApiServices): InitializedControllers => {
 	return {
@@ -49,5 +51,6 @@ export const initializeControllers = (apiServices: ApiServices): InitializedCont
 		diagnosticController: new DiagnosticController(apiServices.diagnosticService),
 		incidentController: new IncidentController(apiServices.incidentService),
 		topologyController: new TopologyController(apiServices.topologyService),
+		apmController: new ApmController(apiServices.apmService),
 	};
 };
