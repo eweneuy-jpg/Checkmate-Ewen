@@ -28,6 +28,8 @@ export interface Notification {
 	accountSid?: string;
 	twilioPhoneNumber?: string;
 	topic?: string;
+	/** Telegram only: include this channel in the weekly uptime report. Absent means enabled. */
+	weeklyReportEnabled?: boolean;
 	createdAt: string;
 	updatedAt: string;
 }

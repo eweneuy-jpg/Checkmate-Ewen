@@ -80,6 +80,7 @@ export const createNotificationBodyValidation = z.discriminatedUnion("type", [
 		type: z.literal("telegram"),
 		address: z.string().min(1, "Chat ID is required"),
 		accessToken: z.string().min(1, "Bot token is required"),
+		weeklyReportEnabled: z.boolean().optional(),
 	}),
 	// Pushover notification
 	z.object({

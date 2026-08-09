@@ -4,7 +4,6 @@ import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interf
 import { INotificationsRepository } from "@/domain/notifications/notification.repository.interface.js";
 import { TelegramProvider } from "@/domain/notifications/providers/telegram.js";
 import type { UptimeChecksResult } from "@/domain/checks/check.type.js";
-import type { Monitor } from "@/domain/monitors/monitor.type.js";
 import type { IReportService, WeeklyReport, WeeklyMonitorReport } from "@/domain/reports/report.type.js";
 import type { DateRange } from "@/types/query.js";
 
@@ -17,7 +16,7 @@ export class WeeklyReportService implements IReportService {
 		private monitorsRepository: IMonitorsRepository,
 		private notificationsRepository: INotificationsRepository,
 		private telegramProvider: TelegramProvider,
-		private logger: ILogger,
+		private logger: ILogger
 	) {}
 
 	async generateWeeklyReport(teamId: string): Promise<WeeklyReport> {
@@ -35,11 +34,7 @@ export class WeeklyReportService implements IReportService {
 			monitors.map(async (m) => {
 				if (!uptimeTypes.has(m.type)) return null; // hardware / pagespeed di-skip
 				try {
-					const res = await this.checksRepository.findByDateRangeAndMonitorId(
-						m.id,
-						dateRange,
-						{ type: m.type as any },
-					);
+					const res = await this.checksRepository.findByDateRangeAndMonitorId(m.id, dateRange, { type: m.type });
 					return {
 						monitor: { id: m.id, type: m.type, name: m.name, url: m.url, status: m.status, isActive: m.isActive, interval: m.interval },
 						uptimeResult: res as UptimeChecksResult | null,
@@ -48,7 +43,7 @@ export class WeeklyReportService implements IReportService {
 					this.logger.warn({ message: `Failed uptime calc for monitor ${m.id}`, service: SERVICE_NAME, details: { error: String(err) } });
 					return null;
 				}
-			}),
+			})
 		);
 
 		const valid = monitorReports.filter((r): r is WeeklyMonitorReport => r !== null);
@@ -67,7 +62,9 @@ export class WeeklyReportService implements IReportService {
 	async publishWeeklyReport(teamId: string): Promise<number> {
 		const report = await this.generateWeeklyReport(teamId);
 		const notifications = await this.notificationsRepository.findByTeamId(teamId);
-		const telegramTargets = notifications.filter((n) => n.type === "telegram" && n.address && n.accessToken);
+		// weeklyReportEnabled is opt-out: notifications created before the field existed have it
+		// undefined, and those keep receiving the report.
+		const telegramTargets = notifications.filter((n) => n.type === "telegram" && n.address && n.accessToken && n.weeklyReportEnabled !== false);
 
 		if (telegramTargets.length === 0) {
 			this.logger.info({ message: `No Telegram targets for team ${teamId}`, service: SERVICE_NAME });

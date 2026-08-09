@@ -1173,7 +1173,9 @@
 					"optionBotToken": "Bot token",
 					"placeholderBotToken": "123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ",
 					"optionChatId": "Chat ID",
-					"placeholderChatId": "-1001234567890"
+					"placeholderChatId": "-1001234567890",
+					"optionWeeklyReport": "Send weekly uptime report",
+					"weeklyReportDescription": "When enabled, this chat also receives the weekly uptime summary for the whole team, independently of the monitors this notification is attached to."
 				},
 				"pushover": {
 					"title": "Pushover configuration",

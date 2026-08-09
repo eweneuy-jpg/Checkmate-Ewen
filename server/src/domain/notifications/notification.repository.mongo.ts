@@ -28,6 +28,7 @@ class MongoNotificationsRepository implements INotificationsRepository {
 			accountSid: doc.accountSid ?? undefined,
 			twilioPhoneNumber: doc.twilioPhoneNumber ?? undefined,
 			topic: doc.topic ?? undefined,
+			weeklyReportEnabled: doc.weeklyReportEnabled ?? undefined,
 			createdAt: toDateString(doc.createdAt),
 			updatedAt: toDateString(doc.updatedAt),
 		};

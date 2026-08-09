@@ -23,6 +23,8 @@ function buildDefaults(data: Notification | null): NotificationFormData {
 			notificationName: data.notificationName || "",
 			address: data.address || "",
 			accessToken: data.accessToken || "",
+			// Absent on notifications created before the field existed, which stay enabled
+			weeklyReportEnabled: data.weeklyReportEnabled ?? true,
 		};
 	}
 	if (data?.type === "slack") {

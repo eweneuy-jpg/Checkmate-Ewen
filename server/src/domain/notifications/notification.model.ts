@@ -53,6 +53,7 @@ const NotificationSchema = new Schema<NotificationDocument>(
 		accountSid: { type: String },
 		twilioPhoneNumber: { type: String },
 		topic: { type: String },
+		weeklyReportEnabled: { type: Boolean, default: true },
 	},
 	{
 		timestamps: true,

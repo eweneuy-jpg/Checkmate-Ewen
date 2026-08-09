@@ -1,8 +1,9 @@
 import { BasePage, ConfigBox } from "@/Components/design-elements";
-import { TextField, Select, Button } from "@/Components/inputs";
+import { TextField, Select, Button, Checkbox } from "@/Components/inputs";
 import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import { useTheme } from "@mui/material/styles";
 
 import { useEffect, useMemo } from "react";
@@ -254,6 +255,32 @@ const NotificationsCreatePage = () => {
 										error={!!fieldState.error}
 										helperText={fieldState.error?.message ?? ""}
 									/>
+								)}
+							/>
+							<Controller
+								name="weeklyReportEnabled"
+								control={control}
+								defaultValue={
+									"weeklyReportEnabled" in defaults ? defaults.weeklyReportEnabled : true
+								}
+								render={({ field }) => (
+									<Stack>
+										<FormControlLabel
+											control={
+												<Checkbox
+													checked={field.value}
+													onChange={field.onChange}
+												/>
+											}
+											label={t("pages.notifications.form.telegram.optionWeeklyReport")}
+										/>
+										<Typography
+											variant="body2"
+											color={theme.palette.text.secondary}
+										>
+											{t("pages.notifications.form.telegram.weeklyReportDescription")}
+										</Typography>
+									</Stack>
 								)}
 							/>
 						</Stack>

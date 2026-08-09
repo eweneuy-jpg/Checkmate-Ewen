@@ -67,10 +67,7 @@ describe("WeeklyReportService", () => {
 
 	describe("generateWeeklyReport", () => {
 		it("should generate report with monitors and worst performers", async () => {
-			monitorsRepo.findByTeamId.mockResolvedValue([
-				makeMonitor({ id: "m1", name: "Good" }),
-				makeMonitor({ id: "m2", name: "Bad" }),
-			]);
+			monitorsRepo.findByTeamId.mockResolvedValue([makeMonitor({ id: "m1", name: "Good" }), makeMonitor({ id: "m2", name: "Bad" })]);
 			checksRepo.findSummaryByTeamId.mockResolvedValue({ totalChecks: 100, downChecks: 5 });
 			checksRepo.findByDateRangeAndMonitorId.mockResolvedValueOnce(makeUptime(100)).mockResolvedValueOnce(makeUptime(90, 3));
 
@@ -127,6 +124,36 @@ describe("WeeklyReportService", () => {
 
 			expect(count).toBe(1);
 			expect(telegramProvider.sendWeeklyReport).toHaveBeenCalledTimes(1);
+		});
+
+		it("should skip Telegram targets with weeklyReportEnabled false", async () => {
+			monitorsRepo.findByTeamId.mockResolvedValue([makeMonitor({ id: "m1" })]);
+			checksRepo.findSummaryByTeamId.mockResolvedValue({ totalChecks: 10, downChecks: 0 });
+			checksRepo.findByDateRangeAndMonitorId.mockResolvedValue(makeUptime(100));
+			notificationsRepo.findByTeamId.mockResolvedValue([
+				{ id: "n1", type: "telegram", address: "123", accessToken: "tok", weeklyReportEnabled: false } as any,
+				{ id: "n2", type: "telegram", address: "456", accessToken: "tok", weeklyReportEnabled: true } as any,
+			]);
+			telegramProvider.sendWeeklyReport.mockResolvedValue(true);
+
+			const count = await service.publishWeeklyReport("t1");
+
+			expect(count).toBe(1);
+			expect(telegramProvider.sendWeeklyReport).toHaveBeenCalledTimes(1);
+			expect(telegramProvider.sendWeeklyReport).toHaveBeenCalledWith(expect.objectContaining({ id: "n2" }), expect.any(String));
+		});
+
+		it("should return 0 when every Telegram target opted out", async () => {
+			monitorsRepo.findByTeamId.mockResolvedValue([]);
+			checksRepo.findSummaryByTeamId.mockResolvedValue({ totalChecks: 0, downChecks: 0 });
+			notificationsRepo.findByTeamId.mockResolvedValue([
+				{ id: "n1", type: "telegram", address: "123", accessToken: "tok", weeklyReportEnabled: false } as any,
+			]);
+
+			const count = await service.publishWeeklyReport("t1");
+
+			expect(count).toBe(0);
+			expect(telegramProvider.sendWeeklyReport).not.toHaveBeenCalled();
 		});
 	});
 });

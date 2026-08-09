@@ -1551,6 +1551,9 @@
           "accessToken": {
             "type": "string",
             "minLength": 1
+          },
+          "weeklyReportEnabled": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -1563,7 +1566,8 @@
           "notificationName": "Telegram bot",
           "type": "telegram",
           "address": "-1001234567890",
-          "accessToken": "123456:ABC-DEF"
+          "accessToken": "123456:ABC-DEF",
+          "weeklyReportEnabled": true
         }
       },
       "PushoverNotification": {

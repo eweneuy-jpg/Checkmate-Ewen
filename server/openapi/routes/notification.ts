@@ -59,7 +59,13 @@ const notificationVariantMeta: Record<string, { component: string; example: Reco
 	},
 	telegram: {
 		component: "TelegramNotification",
-		example: { notificationName: "Telegram bot", type: "telegram", address: "-1001234567890", accessToken: "123456:ABC-DEF" },
+		example: {
+			notificationName: "Telegram bot",
+			type: "telegram",
+			address: "-1001234567890",
+			accessToken: "123456:ABC-DEF",
+			weeklyReportEnabled: true,
+		},
 	},
 	pushover: {
 		component: "PushoverNotification",

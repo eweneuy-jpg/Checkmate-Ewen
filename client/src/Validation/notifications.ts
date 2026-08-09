@@ -62,6 +62,9 @@ const telegramSchema = baseSchema.extend({
 	type: z.literal("telegram"),
 	address: z.string().min(1, "Chat ID is required"),
 	accessToken: z.string().min(1, "Bot token is required"),
+	// Required, not defaulted: z.default() widens the schema's input type and react-hook-form
+	// cannot reconcile that with the discriminated union. The Controller supplies true on mount.
+	weeklyReportEnabled: z.boolean(),
 });
 
 const pushoverSchema = baseSchema.extend({
