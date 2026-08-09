@@ -8,3 +8,6 @@ docs/architecture
 docs/reviews
 docs/todo
 docs/frontend
+
+# macOS Finder metadata, created in every directory it visits
+.DS_Store
