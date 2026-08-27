@@ -44,6 +44,7 @@ import { IInvitesRepository } from "@/domain/invites/invite.repository.interface
 import { IJobsRepository } from "@/domain/jobs/job.repository.interface.js";
 import { IMaintenanceWindowsRepository } from "@/domain/maintenance-windows/maintenance-window.repository.interface.js";
 import { IServersRepository } from "@/domain/servers/server.repository.interface.js";
+import { IRacksRepository } from "@/domain/racks/rack.repository.interface.js";
 import { IMonitorStatsRepository } from "@/domain/monitor-stats/monitor-stats.repository.interface.js";
 import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
 import { INotificationsRepository } from "@/domain/notifications/notification.repository.interface.js";
@@ -72,6 +73,7 @@ import MongoTagsRepository from "@/domain/tags/tag.repository.mongo.js";
 import MongoTeamsRepository from "@/domain/teams/team.repository.model.js";
 import MongoUsersRepository from "@/domain/users/user.repository.mongo.js";
 import { MongoServersRepository } from "@/domain/servers/server.repository.mongo.js";
+import { MongoRacksRepository } from "@/domain/racks/rack.repository.mongo.js";
 
 // Shared infrastructure + business services that both the API and the worker process construct.
 export interface SharedServices {
@@ -106,6 +108,7 @@ export interface SharedServices {
 	teamsRepository: ITeamsRepository;
 	maintenanceWindowsRepository: IMaintenanceWindowsRepository;
 	serversRepository: IServersRepository;
+	racksRepository: IRacksRepository;
 }
 
 export const buildShared = async ({
@@ -143,6 +146,7 @@ export const buildShared = async ({
 	const teamsRepository = new MongoTeamsRepository();
 	const maintenanceWindowsRepository = new MongoMaintenanceWindowsRepository();
 	const serversRepository = new MongoServersRepository();
+	const racksRepository = new MongoRacksRepository(monitorsRepository);
 
 	// Inject settings repository into settings service (now that DB is connected)
 	(settingsService as SettingsService).setRepository(settingsRepository);
@@ -226,6 +230,7 @@ export const buildShared = async ({
 		teamsRepository,
 		maintenanceWindowsRepository,
 		serversRepository,
+		racksRepository,
 	};
 	return sharedServices;
 };

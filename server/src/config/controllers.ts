@@ -15,6 +15,7 @@ import IncidentController from "../api/controllers/incidentController.js";
 import TopologyController from "../api/controllers/topologyController.js";
 import ApmController from "../api/controllers/apmController.js";
 import ServersController from "../api/controllers/serverController.js";
+import RacksController from "../api/controllers/rackController.js";
 import { ApiServices } from "@/config/services.api.js";
 
 export interface InitializedControllers {
@@ -35,6 +36,7 @@ export interface InitializedControllers {
 	topologyController: TopologyController;
 	apmController: ApmController;
 	serversController: ServersController;
+	racksController: RacksController;
 }
 export const initializeControllers = (apiServices: ApiServices): InitializedControllers => {
 	return {
@@ -55,5 +57,6 @@ export const initializeControllers = (apiServices: ApiServices): InitializedCont
 		topologyController: new TopologyController(apiServices.topologyService),
 		apmController: new ApmController(apiServices.apmService),
 		serversController: new ServersController(apiServices.serversService),
+		racksController: new RacksController(apiServices.racksService),
 	};
 };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ServerEnvironments, ServerRoles } from "@/domain/servers/server.type.js";
+import { ServerEnvironments, ServerRoles, RackFaces } from "@/domain/servers/server.type.js";
 
 export const createServerBodyValidation = z.object({
 	hostname: z.string().min(1, "hostname is required").max(255),
@@ -14,6 +14,23 @@ export const createServerBodyValidation = z.object({
 	sshPort: z.number().int().min(1).max(65535).default(22),
 	tags: z.array(z.string()).default([]),
 	monitors: z.array(z.string()).default([]),
+	// Rack position
+	rackId: z.string().optional(),
+	uStart: z.number().int().min(1).max(60).optional(),
+	uHeight: z.number().int().min(1).max(10).default(1),
+	face: z.enum(RackFaces).default("front"),
+	// Hardware
+	hardwareModel: z.string().max(200).optional(),
+	serialNumber: z.string().max(100).optional(),
+	// VM / Project
+	isVmHost: z.boolean().default(false),
+	vmNames: z.array(z.string()).default([]),
+	projectName: z.string().max(100).optional(),
+	ports: z.array(z.object({
+		name: z.string(),
+		label: z.string(),
+		target: z.string().optional(),
+	})).default([]),
 });
 
 export const updateServerBodyValidation = createServerBodyValidation.partial();

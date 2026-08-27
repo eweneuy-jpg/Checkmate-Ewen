@@ -23,3 +23,4 @@ export * from "./userValidation.js";
 export * from "./incidentValidation.js";
 export * from "./tagValidation.js";
 export * from "./serverValidation.js";
+export * from "./rackValidation.js";

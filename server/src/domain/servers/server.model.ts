@@ -1,6 +1,6 @@
 import { Schema, model, Types } from "mongoose";
 import type { Server } from "./server.type.js";
-import { ServerEnvironments, ServerRoles } from "./server.type.js";
+import { ServerEnvironments, ServerRoles, RackFaces } from "./server.type.js";
 
 type ServerDocumentBase = Omit<
 	Server,
@@ -88,6 +88,63 @@ const ServerSchema = new Schema<ServerDocument>(
 		],
 		tags: {
 			type: [String],
+			default: [],
+		},
+		// --- Rack position ---
+		rackId: {
+			type: Schema.Types.ObjectId,
+			ref: "Rack",
+			default: null,
+		},
+		uStart: {
+			type: Number,
+			min: 1,
+			max: 60,
+		},
+		uHeight: {
+			type: Number,
+			min: 1,
+			max: 10,
+			default: 1,
+		},
+		face: {
+			type: String,
+			enum: RackFaces,
+			default: "front",
+		},
+		// --- Hardware metadata ---
+		hardwareModel: {
+			type: String,
+			trim: true,
+			maxLength: 200,
+		},
+		serialNumber: {
+			type: String,
+			trim: true,
+			maxLength: 100,
+		},
+		// --- VM / Project ---
+		isVmHost: {
+			type: Boolean,
+			default: false,
+		},
+		vmNames: {
+			type: [String],
+			default: [],
+		},
+		projectName: {
+			type: String,
+			trim: true,
+			maxLength: 100,
+		},
+		ports: {
+			type: [
+				{
+					name: { type: String, trim: true },
+					label: { type: String, trim: true },
+					target: { type: String, trim: true },
+				},
+			],
 			default: [],
 		},
 	},

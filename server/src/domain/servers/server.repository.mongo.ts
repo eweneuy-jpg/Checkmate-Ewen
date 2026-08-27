@@ -23,6 +23,19 @@ const toDomain = (doc: ServerDocument | null): Server | null => {
 		sshPort: doc.sshPort,
 		monitors: doc.monitors.map((m) => m.toString()),
 		tags: doc.tags,
+		// Rack position
+		rackId: doc.rackId?.toString(),
+		uStart: doc.uStart,
+		uHeight: doc.uHeight,
+		face: doc.face,
+		// Hardware
+		hardwareModel: doc.hardwareModel,
+		serialNumber: doc.serialNumber,
+		// VM / Project
+		isVmHost: doc.isVmHost,
+		vmNames: doc.vmNames,
+		projectName: doc.projectName,
+		ports: doc.ports,
 		createdAt: doc.createdAt.toISOString(),
 		updatedAt: doc.updatedAt.toISOString(),
 	};
