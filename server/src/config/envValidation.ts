@@ -34,6 +34,11 @@ const envSchema = z.object({
 	// Optional
 	ORIGIN: z.string().optional(),
 
+	// Telegram Bot (optional — enables /addrack, /addserver commands)
+	TELEGRAM_BOT_TOKEN: z.string().optional(),
+	TELEGRAM_CHAT_IDS: z.string().optional(),
+	TELEGRAM_POLL_TIMEOUT: z.string().default("30"),
+
 	// Feature flags
 	STATUS_PAGE_THEMES_ENABLED: booleanCoercion.default(true),
 });

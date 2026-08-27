@@ -15,6 +15,8 @@ import { SettingsService } from "@/domain/app-settings/app-settings.service.js";
 import { JobScheduler } from "@/worker/worker.job-scheduler.js";
 import { IJobScheduler } from "@/worker/worker.interface.js";
 import { HealthServer, IHealthServer } from "@/worker/worker.health-server.js";
+import { TelegramBot } from "@/domain/telegram/telegram.bot.js";
+import { parseTelegramBotConfig } from "@/domain/telegram/telegram.config.js";
 const SERVICE_NAME = "Server";
 let logger: ILogger;
 
@@ -103,8 +105,37 @@ const startApp = async () => {
 		openApiSpec,
 	});
 	const server = app.listen(env.PORT, () => {
-		logger.info({ message: `Server started on port:${env.PORT}` });
+		logger.info({ message: `Server started on port:${env.PORT}`, service: SERVICE_NAME });
 	});
+
+	// ***********************
+	// Start Telegram bot (optional — zero overhead if token not set)
+	// ***********************
+	const tgConfig = parseTelegramBotConfig();
+	if (tgConfig.enabled) {
+		try {
+			// Resolve teamId (first team in DB via shared teamsRepository)
+			const teamIds = await shared.teamsRepository.findAllTeamIds();
+			const teamId = teamIds[0] ?? "";
+			if (!teamId) {
+				logger.warn({
+					message: "No team found in DB — Telegram bot cannot resolve teamId",
+					service: SERVICE_NAME,
+					method: "startApp",
+				});
+			} else {
+				const tgBot = new TelegramBot(logger, tgConfig, services.racksService, services.serversService);
+				tgBot.setTeamId(teamId);
+				await tgBot.start();
+			}
+		} catch (err) {
+			logger.warn({
+				message: `Telegram bot init failed: ${err instanceof Error ? err.message : "unknown"}`,
+				service: SERVICE_NAME,
+				method: "startApp",
+			});
+		}
+	}
 
 	initShutdownListener(server, { ...services, healthServer });
 };
