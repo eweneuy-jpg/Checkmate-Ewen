@@ -28,6 +28,8 @@ import { ReactorDispatcher } from "@/worker/reactors/reactor.dispatcher.js";
 import { DBQueueWorker } from "@/worker/worker.db-queue.js";
 import { WeeklyReportService } from "@/domain/reports/report.service.js";
 import { TelegramProvider } from "@/domain/notifications/providers/telegram.js";
+import { AgentAriaReactor } from "@/worker/aria/aria.reactor.js";
+import { parseAriaConfig } from "@/worker/aria/aria.config.js";
 
 // Network providers
 import { PingProvider } from "@/service/network/PingProvider.js";
@@ -110,12 +112,14 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 
 	// ***********************
 	// Reactors and dispatcher
-	// Handles notifications and incidents
+	// Handles notifications, incidents, and AI-powered investigation
 	// ***********************
 
+	const ariaConfig = parseAriaConfig();
 	const notificationReactor = new NotificationReactor(notificationsService);
 	const incidentReactor = new IncidentReactor(incidentService);
-	const reactorDispatcher = new ReactorDispatcher(logger, [notificationReactor, incidentReactor]);
+	const ariaReactor = new AgentAriaReactor(logger, ariaConfig, sshRunner, notificationsService);
+	const reactorDispatcher = new ReactorDispatcher(logger, [notificationReactor, incidentReactor, ariaReactor]);
 
 	// ***********************
 	// Check producer/evaluator
