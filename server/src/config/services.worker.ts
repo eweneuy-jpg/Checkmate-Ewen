@@ -118,7 +118,7 @@ export const buildWorker = async (shared: SharedServices, envSettings: EnvConfig
 	const ariaConfig = parseAriaConfig();
 	const notificationReactor = new NotificationReactor(notificationsService);
 	const incidentReactor = new IncidentReactor(incidentService);
-	const ariaReactor = new AgentAriaReactor(logger, ariaConfig, sshRunner, notificationsService);
+	const ariaReactor = new AgentAriaReactor(logger, ariaConfig, sshRunner, notificationsService, shared.serversRepository);
 	const reactorDispatcher = new ReactorDispatcher(logger, [notificationReactor, incidentReactor, ariaReactor]);
 
 	// ***********************

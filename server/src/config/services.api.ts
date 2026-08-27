@@ -6,6 +6,7 @@ import { IStatusPageService, StatusPageService } from "@/domain/status-pages/sta
 import { ITagsService, TagsService } from "@/domain/tags/tag.service.js";
 import { TopologyService } from "@/domain/topology/topology.service.js";
 import { ITopologyService } from "@/domain/topology/topology.type.js";
+import { IServersService, ServersService } from "@/domain/servers/server.service.js";
 import { ApmService } from "@/domain/apm/apm.service.js";
 import { IApmService } from "@/domain/apm/apm.type.js";
 import { IUserService, UserService } from "@/domain/users/user.service.js";
@@ -28,6 +29,7 @@ export interface ApiServices extends SharedServices {
 	tagsService: ITagsService;
 	topologyService: ITopologyService;
 	apmService: IApmService;
+	serversService: IServersService;
 	diagnosticService: IDiagnosticService;
 }
 
@@ -50,6 +52,7 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 		incidentsRepository,
 		teamsRepository,
 		maintenanceWindowsRepository,
+		serversRepository,
 		jobsRepository,
 	} = shared;
 
@@ -101,6 +104,7 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 	const tagsService = new TagsService(tagsRepository, monitorsRepository);
 	const topologyService = new TopologyService({ monitorsRepository });
 	const apmService = new ApmService(checksRepository, monitorsRepository, logger);
+	const serversService = new ServersService(logger, serversRepository, monitorsRepository);
 	const diagnosticService = new DiagnosticService(db);
 
 	return {
@@ -114,6 +118,7 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 		tagsService,
 		topologyService,
 		apmService,
+		serversService,
 		diagnosticService,
 	};
 };

@@ -43,6 +43,7 @@ import { IIncidentsRepository } from "@/domain/incidents/incident.repository.int
 import { IInvitesRepository } from "@/domain/invites/invite.repository.interface.js";
 import { IJobsRepository } from "@/domain/jobs/job.repository.interface.js";
 import { IMaintenanceWindowsRepository } from "@/domain/maintenance-windows/maintenance-window.repository.interface.js";
+import { IServersRepository } from "@/domain/servers/server.repository.interface.js";
 import { IMonitorStatsRepository } from "@/domain/monitor-stats/monitor-stats.repository.interface.js";
 import { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
 import { INotificationsRepository } from "@/domain/notifications/notification.repository.interface.js";
@@ -70,6 +71,7 @@ import MongoStatusPagesRepository from "@/domain/status-pages/status-page-reposi
 import MongoTagsRepository from "@/domain/tags/tag.repository.mongo.js";
 import MongoTeamsRepository from "@/domain/teams/team.repository.model.js";
 import MongoUsersRepository from "@/domain/users/user.repository.mongo.js";
+import { MongoServersRepository } from "@/domain/servers/server.repository.mongo.js";
 
 // Shared infrastructure + business services that both the API and the worker process construct.
 export interface SharedServices {
@@ -103,6 +105,7 @@ export interface SharedServices {
 	incidentsRepository: IIncidentsRepository;
 	teamsRepository: ITeamsRepository;
 	maintenanceWindowsRepository: IMaintenanceWindowsRepository;
+	serversRepository: IServersRepository;
 }
 
 export const buildShared = async ({
@@ -139,6 +142,7 @@ export const buildShared = async ({
 	const tagsRepository = new MongoTagsRepository();
 	const teamsRepository = new MongoTeamsRepository();
 	const maintenanceWindowsRepository = new MongoMaintenanceWindowsRepository();
+	const serversRepository = new MongoServersRepository();
 
 	// Inject settings repository into settings service (now that DB is connected)
 	(settingsService as SettingsService).setRepository(settingsRepository);
@@ -221,6 +225,7 @@ export const buildShared = async ({
 		incidentsRepository,
 		teamsRepository,
 		maintenanceWindowsRepository,
+		serversRepository,
 	};
 	return sharedServices;
 };

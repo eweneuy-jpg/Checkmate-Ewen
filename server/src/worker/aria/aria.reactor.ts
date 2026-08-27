@@ -18,6 +18,7 @@ import { IMonitorReactor } from "@/worker/reactors/reactor.interface.js";
 import { MonitorEvaluation } from "@/worker/worker.interface.js";
 import { ILogger } from "@/utils/logger.js";
 import type { INotificationsService } from "@/domain/notifications/notification.service.js";
+import type { IServersRepository } from "@/domain/servers/server.repository.interface.js";
 
 import type { AriaConfig } from "./aria.config.js";
 import type { IRouterCommandRunner } from "@/service/network/sshRunner.js";
@@ -36,6 +37,7 @@ export class AgentAriaReactor implements IMonitorReactor {
 		private cfg: AriaConfig,
 		private sshRunner: IRouterCommandRunner,
 		private notificationsService: INotificationsService,
+		private serversRepository?: IServersRepository,
 	) {}
 
 	react = async (evaluation: MonitorEvaluation): Promise<void> => {
@@ -82,11 +84,30 @@ export class AgentAriaReactor implements IMonitorReactor {
 			message: `Investigating ${monitor.name} [${alertType}] host=${host}`,
 		});
 
-		// 1. Run SSH diagnostics
+		// 1. Resolve SSH credentials: try Server inventory first, then monitor fields
 		const commands = getDiagnosticCommands(alertType);
-		const sshUser = monitor.sshUsername || monitor.bgpRouterUsername || this.cfg.sshDefaultUser;
-		const sshPass = monitor.sshPassword || monitor.bgpRouterPassword || "";
-		const sshPort = monitor.sshPort || monitor.bgpRouterPort || 22;
+		let sshUser = monitor.sshUsername || monitor.bgpRouterUsername || this.cfg.sshDefaultUser;
+		let sshPass = monitor.sshPassword || monitor.bgpRouterPassword || "";
+		let sshPort = monitor.sshPort || monitor.bgpRouterPort || 22;
+
+		// Lookup Server by monitor ID for centralized SSH creds
+		if (this.serversRepository) {
+			try {
+				const server = await this.serversRepository.findByMonitorId(monitor.id);
+				if (server) {
+					sshUser = server.sshUsername || sshUser;
+					sshPass = server.sshPassword || sshPass;
+					sshPort = server.sshPort || sshPort;
+					this.logger.debug({
+						service: SERVICE_NAME,
+						method: "react",
+						message: `Resolved SSH creds from Server '${server.hostname}' for monitor ${monitor.id}`,
+					});
+				}
+			} catch {
+				// Server lookup is best-effort — fall back to monitor creds
+			}
+		}
 
 		const diagOutput = await runDiagnosticCommands(
 			this.sshRunner,
