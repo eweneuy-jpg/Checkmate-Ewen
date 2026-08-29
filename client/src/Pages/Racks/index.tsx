@@ -1,19 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-	Box,
-	Typography,
-	CircularProgress,
-	MenuItem,
-	TextField,
-	Grid2,
-	Paper,
-} from "@mui/material";
+import { Box, Typography, CircularProgress, TextField, MenuItem, Paper, Grid2 } from "@mui/material";
 import { RackDiagram } from "@/Components/racks/RackDiagram";
 import { ServerDetailPanel } from "@/Components/racks/ServerDetailPanel";
+import { SummaryCards } from "@/Components/racks/SummaryCards";
+import { ThermalHeatmap } from "@/Components/racks/ThermalHeatmap";
+import { NetworkTopology } from "@/Components/racks/NetworkTopology";
+import { IncidentPanel } from "@/Components/racks/IncidentPanel";
+import { SystemLogs } from "@/Components/racks/SystemLogs";
+import { EnvironmentPanel } from "@/Components/racks/EnvironmentPanel";
 import { RackService } from "@/Utils/RackService";
 import type { RackSummary, RackWithSlots, RackServer } from "@/Types/Rack";
 
-const RacksPage = () => {
+const RacksDashboard = () => {
 	const [summaries, setSummaries] = useState<RackSummary[]>([]);
 	const [selectedRackId, setSelectedRackId] = useState<string>("ALL");
 	const [racks, setRacks] = useState<RackWithSlots[]>([]);
@@ -44,6 +42,11 @@ const RacksPage = () => {
 		setSelectedServerRack(rack);
 	};
 
+	const handleSelectRack = (name: string) => {
+		const rack = racks.find((r) => r.name === name);
+		if (rack) setSelectedRackId(rack.id);
+	};
+
 	const filteredRacks = selectedRackId === "ALL"
 		? racks
 		: racks.filter((r) => r.id === selectedRackId);
@@ -57,65 +60,89 @@ const RacksPage = () => {
 	}
 
 	return (
-		<Box sx={{ p: 3 }}>
-			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-				<Typography variant="h5" sx={{ fontWeight: 600 }}>
-					Rack Management
-				</Typography>
-				<TextField
-					select
-					size="small"
-					label="Rack"
-					value={selectedRackId}
-					onChange={(e) => setSelectedRackId(e.target.value)}
-					sx={{ minWidth: 200 }}
-				>
-					<MenuItem value="ALL">All Racks ({summaries.length})</MenuItem>
-					{summaries.map((s) => (
-						<MenuItem key={s.id} value={s.id}>
-							{s.name} — {s.serverCount} servers, {s.usedU}/{s.totalU}U
-							{s.serverCount > 0 && s.serverCount === 0 ? "" : ""}
-						</MenuItem>
-					))}
-				</TextField>
+		<Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+			{/* Row 1: Summary */}
+			<SummaryCards racks={racks} onSelectRack={handleSelectRack} />
+
+			{/* Row 2: Rack Diagrams + Server Detail | Thermal */}
+			<Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" }, gap: 2 }}>
+				<Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+					<Paper variant="outlined" sx={{ p: 2 }}>
+						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+							<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Server Racks</Typography>
+							<TextField
+								select
+								size="small"
+								label="Rack"
+								value={selectedRackId}
+								onChange={(e) => setSelectedRackId(e.target.value)}
+								sx={{ minWidth: 200 }}
+							>
+								<MenuItem value="ALL">All Racks ({summaries.length})</MenuItem>
+								{summaries.map((s) => (
+									<MenuItem key={s.id} value={s.id}>
+										{s.name} — {s.serverCount} servers, {s.usedU}/{s.totalU}U
+									</MenuItem>
+								))}
+							</TextField>
+						</Box>
+						<Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+							<Box sx={{ flex: 1, display: "flex", gap: 1.5, flexWrap: "wrap", justifyContent: "center" }}>
+								{filteredRacks.length === 0 ? (
+									<Typography color="text.secondary" sx={{ p: 4, textAlign: "center" }}>
+										No racks found. Create one via Telegram: <code>/addrack name location [totalU]</code>
+									</Typography>
+								) : (
+									filteredRacks.map((rack) => (
+										<RackDiagram
+											key={rack.id}
+											rack={rack}
+											onServerClick={handleServerClick}
+											selectedServerId={selectedServer?.id}
+										/>
+									))
+								)}
+							</Box>
+							<Box sx={{ width: 300, flexShrink: 0 }}>
+								{selectedServer && selectedServerRack ? (
+									<ServerDetailPanel server={selectedServer} rack={selectedServerRack} />
+								) : (
+									<Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>
+										<Typography color="text.secondary" variant="body2">
+											Click a server in the rack diagram to see details
+										</Typography>
+									</Paper>
+								)}
+							</Box>
+						</Box>
+					</Paper>
+				</Box>
+				<ThermalHeatmap racks={racks} />
 			</Box>
 
-			<Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
-				{/* Rack diagrams */}
-				<Box sx={{ flex: 1, display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center" }}>
-					{filteredRacks.length === 0 ? (
-						<Paper sx={{ p: 4, textAlign: "center" }}>
-							<Typography color="text.secondary">
-								No racks found. Create one via Telegram bot: <code>/addrack name location [totalU]</code>
-							</Typography>
-						</Paper>
-					) : (
-						filteredRacks.map((rack) => (
-							<RackDiagram
-								key={rack.id}
-								rack={rack}
-								onServerClick={handleServerClick}
-								selectedServerId={selectedServer?.id}
-							/>
-						))
-					)}
-				</Box>
+			{/* Row 3: Network | Incident | Logs */}
+			<Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2 }}>
+				<NetworkTopology />
+				<IncidentPanel racks={racks} />
+				<SystemLogs />
+			</Box>
 
-				{/* Detail panel */}
-				<Box sx={{ width: 300, flexShrink: 0 }}>
+			{/* Row 4: Environment | Device Details */}
+			<Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+				<EnvironmentPanel />
+				<Paper variant="outlined" sx={{ p: 2, minHeight: 120 }}>
+					<Typography variant="subtitle2" sx={{ mb: 1.5 }}>Device Details</Typography>
 					{selectedServer && selectedServerRack ? (
 						<ServerDetailPanel server={selectedServer} rack={selectedServerRack} />
 					) : (
-						<Paper sx={{ p: 4, textAlign: "center" }}>
-							<Typography color="text.secondary" variant="body2">
-								Click a server in the rack diagram to see details
-							</Typography>
-						</Paper>
+						<Typography color="text.secondary" variant="body2" sx={{ textAlign: "center", py: 3 }}>
+							Click a server in the rack diagram
+						</Typography>
 					)}
-				</Box>
+				</Paper>
 			</Box>
 		</Box>
 	);
 };
 
-export default RacksPage;
+export default RacksDashboard;
