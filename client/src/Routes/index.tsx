@@ -40,7 +40,8 @@ import Tags from "@/Pages/Tags";
 import CreateTags from "@/Pages/Tags/create";
 
 // Topology
-import Topology from "@/Pages/Topology";
+import Topology from "@/Pages/Topology/";
+import Racks from "@/Pages/Racks";
 
 // Settings
 import Account from "@/Pages/Account";
@@ -190,6 +191,10 @@ const Routes = () => {
 				<Route
 					path="topology"
 					element={<Topology />}
+				/>
+				<Route
+					path="racks"
+					element={<Racks />}
 				/>
 				<Route
 					path="tags/create"

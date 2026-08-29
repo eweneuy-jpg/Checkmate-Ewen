@@ -19,6 +19,7 @@ import {
 	Users,
 	Tag,
 	Network,
+	Server,
 } from "lucide-react";
 
 export const getMenu = (t: Function) => {
@@ -52,6 +53,11 @@ export const getMenu = (t: Function) => {
 			name: t("components.sidebar.menu.topology"),
 			path: "topology",
 			icon: <Icon icon={Network} />,
+		},
+		{
+			name: "Racks",
+			path: "racks",
+			icon: <Icon icon={Server} />,
 		},
 		{
 			name: t("components.sidebar.menu.checks"),
