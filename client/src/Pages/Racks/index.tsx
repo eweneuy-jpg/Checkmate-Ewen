@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box, Typography, CircularProgress, TextField, MenuItem, Paper, Grid2 } from "@mui/material";
+import { Box, Typography, CircularProgress, TextField, MenuItem, Paper } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { RackDiagram } from "@/Components/racks/RackDiagram";
 import { ServerDetailPanel } from "@/Components/racks/ServerDetailPanel";
 import { SummaryCards } from "@/Components/racks/SummaryCards";

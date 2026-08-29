@@ -1,4 +1,5 @@
-import { Card, CardContent, Typography, Box, Button, Chip, Grid2 } from "@mui/material";
+import { Card, CardContent, Typography, Box, Button, Chip } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import { Shield, Terminal, Thermometer, Cpu, MemoryStick, Zap } from "lucide-react";
 import type { RackServer, RackWithSlots, ServerOverallStatus } from "@/Types/Rack";
 
@@ -43,14 +44,14 @@ export const ServerDetailPanel = ({ server, rack }: Props) => {
 					/>
 				</Box>
 
-				<Grid2 container spacing={1} sx={{ mb: 2 }}>
+				<Grid container spacing={1} sx={{ mb: 2 }}>
 					{[
 						{ icon: <Cpu size={14} />, label: "CPU", value: server.overallStatus === "down" ? "—" : "72%" },
 						{ icon: <MemoryStick size={14} />, label: "RAM", value: server.overallStatus === "down" ? "—" : "64%" },
 						{ icon: <Thermometer size={14} />, label: "Temp", value: "34°C" },
 						{ icon: <Zap size={14} />, label: "Power", value: `${server.ports?.length ?? 0}W` },
 					].map((stat) => (
-						<Grid2 size={6} key={stat.label}>
+						<Grid size={6} key={stat.label}>
 							<Box sx={{ p: 1, backgroundColor: "background.default", borderRadius: 1 }}>
 								<Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.secondary" }}>
 									{stat.icon}
@@ -62,9 +63,9 @@ export const ServerDetailPanel = ({ server, rack }: Props) => {
 									{stat.value}
 								</Typography>
 							</Box>
-						</Grid2>
+						</Grid>
 					))}
-				</Grid2>
+				</Grid>
 
 				<Box sx={{ mb: 1 }}>
 					<Typography variant="caption" color="text.secondary">

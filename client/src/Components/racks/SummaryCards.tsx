@@ -1,5 +1,5 @@
 import { Box, Card, CardContent, Typography, Modal, IconButton, Chip } from "@mui/material";
-import { Close } from "@mui/icons-material";
+import { X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { RackWithSlots, RackServer, ServerOverallStatus } from "@/Types/Rack";
 
@@ -144,7 +144,7 @@ export const SummaryCards = ({ racks, onSelectRack }: Props) => {
 				}}>
 					<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 2, borderBottom: 1, borderColor: "divider" }}>
 						<Typography variant="h6" sx={{ color: "primary.main", fontSize: 14 }}>{title}</Typography>
-						<IconButton size="small" onClick={closeModal}><Close /></IconButton>
+						<IconButton size="small" onClick={closeModal}><X size={16} /></IconButton>
 					</Box>
 					<Box sx={{ p: 2, overflow: "auto" }}>{body}</Box>
 				</Box>
