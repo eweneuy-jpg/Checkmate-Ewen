@@ -13,8 +13,9 @@ import {
 	MenuItem,
 	TextField,
 	Paper,
+	CircularProgress,
 } from "@mui/material";
-import { X, Link2, Trash2, Plus } from "lucide-react";
+import { X, Link2, Trash2, Plus, Radar, CheckCircle2 } from "lucide-react";
 import { ServerService } from "@/Utils/ServerService";
 import type { RackServer, RackWithSlots, ServerPort } from "@/Types/Rack";
 
@@ -37,6 +38,9 @@ interface Connection {
 
 export const PortConnectionsDialog = ({ open, server, rack, allRacks, onClose, onSaved }: Props) => {
 	const [saving, setSaving] = useState(false);
+	const [scanning, setScanning] = useState(false);
+	const [scanResults, setScanResults] = useState<{ localPort: string; remoteHostname: string; remotePort: string }[]>([]);
+	const [scanApplied, setScanApplied] = useState(false);
 	const [error, setError] = useState("");
 	const [connections, setConnections] = useState<Connection[]>([]);
 	const [newFromPort, setNewFromPort] = useState("");
@@ -109,6 +113,43 @@ export const PortConnectionsDialog = ({ open, server, rack, allRacks, onClose, o
 		setConnections(connections.filter(c => c.id !== id));
 	};
 
+	const handleScan = async () => {
+		if (!server) return;
+		setScanning(true); setError("");
+		setScanResults([]); setScanApplied(false);
+		try {
+			const neighbors = await ServerService.scanConnections(server.id);
+			setScanResults(neighbors);
+		} catch (err: unknown) {
+			setError(err instanceof Error ? err.message : "LLDP scan failed — check SSH credentials");
+		} finally {
+			setScanning(false);
+		}
+	};
+
+	const handleApplyScan = () => {
+		// Merge scan results into connections
+		const newConns: Connection[] = scanResults.map(sr => {
+			const portKey = sr.localPort;
+			return {
+				id: `${portKey}→${sr.remoteHostname}/${sr.remotePort}`,
+				fromPort: portKey,
+				toServerId: sr.remoteHostname,
+				toServerName: sr.remoteHostname,
+				toPort: sr.remotePort,
+			};
+		});
+		// Deduplicate against existing
+		const merged = [...connections];
+		for (const nc of newConns) {
+			if (!merged.some(c => c.fromPort === nc.fromPort && c.toServerId === nc.toServerId && c.toPort === nc.toPort)) {
+				merged.push(nc);
+			}
+		}
+		setConnections(merged);
+		setScanApplied(true);
+	};
+
 	const handleSave = async () => {
 		if (!server) return;
 		setSaving(true); setError("");
@@ -171,6 +212,44 @@ export const PortConnectionsDialog = ({ open, server, rack, allRacks, onClose, o
 						))}
 					</Box>
 				)}
+
+				{/* LLDP Auto-Scan */}
+				<Box sx={{ mb: 2 }}>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+						<Button
+							variant="outlined"
+							size="small"
+							startIcon={scanning ? <CircularProgress size={14} /> : <Radar size={16} />}
+							onClick={handleScan}
+							disabled={scanning || saving}
+						>
+							{scanning ? "Scanning…" : "LLDP Auto-Scan"}
+						</Button>
+						{scanApplied && (
+							<Chip size="small" color="success" icon={<CheckCircle2 size={14} />} label="Applied" />
+						)}
+					</Box>
+					{scanResults.length > 0 && !scanApplied && (
+						<Paper variant="outlined" sx={{ p: 1.5, bgcolor: "rgba(34,197,94,0.05)" }}>
+							<Typography variant="subtitle2" sx={{ mb: 1, color: "success.main" }}>
+								Discovered {scanResults.length} LLDP neighbors:
+							</Typography>
+							<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mb: 1 }}>
+								{scanResults.map((sr, i) => (
+									<Box key={i} sx={{ display: "flex", alignItems: "center", gap: 0.5, fontSize: 12 }}>
+										<Chip size="small" color="primary" label={sr.localPort} />
+										<Link2 size={12} style={{ opacity: 0.5 }} />
+										<Typography variant="body2" sx={{ fontWeight: 600 }}>{sr.remoteHostname}</Typography>
+										<Chip size="small" variant="outlined" label={sr.remotePort} />
+									</Box>
+								))}
+							</Box>
+							<Button size="small" variant="contained" color="success" onClick={handleApplyScan}>
+								Apply {scanResults.length} connections
+							</Button>
+						</Paper>
+					)}
+				</Box>
 
 				{/* Add new connection */}
 				<Paper variant="outlined" sx={{ p: 2, bgcolor: "action.hover" }}>

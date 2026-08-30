@@ -8,6 +8,7 @@ import { TopologyService } from "@/domain/topology/topology.service.js";
 import { ITopologyService } from "@/domain/topology/topology.type.js";
 import { IServersService, ServersService } from "@/domain/servers/server.service.js";
 import { IRacksService, RacksService } from "@/domain/racks/rack.service.js";
+import { SshRouterCommandRunner } from "@/service/network/sshRunner.js";
 import { ApmService } from "@/domain/apm/apm.service.js";
 import { IApmService } from "@/domain/apm/apm.type.js";
 import { IUserService, UserService } from "@/domain/users/user.service.js";
@@ -107,7 +108,8 @@ export const buildApi = (shared: SharedServices, jobScheduler: IJobScheduler): A
 	const tagsService = new TagsService(tagsRepository, monitorsRepository);
 	const topologyService = new TopologyService({ monitorsRepository });
 	const apmService = new ApmService(checksRepository, monitorsRepository, logger);
-	const serversService = new ServersService(logger, serversRepository, monitorsRepository);
+	const sshRunner = new SshRouterCommandRunner(15000);
+	const serversService = new ServersService(logger, serversRepository, monitorsRepository, sshRunner);
 	const racksService = new RacksService(logger, racksRepository);
 	const diagnosticService = new DiagnosticService(db);
 

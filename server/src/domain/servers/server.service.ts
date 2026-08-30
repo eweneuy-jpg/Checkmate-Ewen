@@ -1,9 +1,11 @@
 import { AppError } from "@/utils/AppError.js";
 import { ILogger } from "@/utils/logger.js";
+import type { IRouterCommandRunner } from "@/service/network/sshRunner.js";
 import type { IServersRepository } from "./server.repository.interface.js";
 import type { IMonitorsRepository } from "@/domain/monitors/monitor.repository.interface.js";
 import type { Server, ServerResponse, ServerSummary, ServerWithMonitors } from "./server.type.js";
 import { computeOverallStatus } from "./server.type.js";
+import { parseLldpNeighbors, getLldpCommand, type LldpNeighbor } from "./lldp.parser.js";
 
 const SERVICE_NAME = "ServersService";
 
@@ -17,6 +19,7 @@ export interface IServersService {
 	linkMonitor(serverId: string, teamId: string, monitorId: string): Promise<Server>;
 	unlinkMonitor(serverId: string, teamId: string, monitorId: string): Promise<Server>;
 	findByMonitorId(monitorId: string): Promise<Server | null>;
+	scanConnections(serverId: string, teamId: string): Promise<LldpNeighbor[]>;
 	toResponse(server: Server): ServerResponse;
 }
 
@@ -27,6 +30,7 @@ export class ServersService implements IServersService {
 		private logger: ILogger,
 		private serversRepository: IServersRepository,
 		private monitorsRepository: IMonitorsRepository,
+		private sshRunner?: IRouterCommandRunner,
 	) {}
 
 	createServer = async (data: Partial<Server>, userId: string, teamId: string): Promise<Server> => {
@@ -137,6 +141,43 @@ export class ServersService implements IServersService {
 
 	findByMonitorId = async (monitorId: string): Promise<Server | null> => {
 		return await this.serversRepository.findByMonitorId(monitorId);
+	};
+
+	scanConnections = async (serverId: string, teamId: string): Promise<LldpNeighbor[]> => {
+		const server = await this.getServer(serverId, teamId);
+		if (!server.sshUsername) {
+			throw new AppError({ message: "Server has no SSH username configured", status: 400, service: SERVICE_NAME });
+		}
+		if (!server.sshPassword) {
+			throw new AppError({ message: "Server has no SSH password configured", status: 400, service: SERVICE_NAME });
+		}
+		if (!this.sshRunner) {
+			throw new AppError({ message: "SSH runner not available — cannot scan", status: 500, service: SERVICE_NAME });
+		}
+
+		const command = getLldpCommand(server.os, server.role);
+		this.logger.info({
+			service: SERVICE_NAME,
+			method: "scanConnections",
+			message: `LLDP scan: SSH ${server.sshUsername}@${server.ipAddress}:${server.sshPort} — ${command}`,
+		});
+
+		const rawOutput = await this.sshRunner.exec(
+			server.ipAddress,
+			server.sshPort ?? 22,
+			server.sshUsername,
+			server.sshPassword,
+			command,
+		);
+
+		const neighbors = parseLldpNeighbors(rawOutput);
+		this.logger.info({
+			service: SERVICE_NAME,
+			method: "scanConnections",
+			message: `LLDP scan complete: ${neighbors.length} neighbors discovered on ${server.hostname}`,
+		});
+
+		return neighbors;
 	};
 
 	toResponse = (server: Server): ServerResponse => {

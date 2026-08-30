@@ -18,6 +18,7 @@ export interface IServersController {
 	deleteServer: RequestHandler;
 	linkMonitor: RequestHandler;
 	unlinkMonitor: RequestHandler;
+	scanConnections: RequestHandler;
 }
 
 const unlinkMonitorParamValidation = z.object({
@@ -77,6 +78,13 @@ class ServersController implements IServersController {
 		const { id, monitorId } = unlinkMonitorParamValidation.parse(req.params);
 		const server = await this.serversService.unlinkMonitor(id, teamId, monitorId);
 		return res.status(200).json({ success: true, msg: "Monitor unlinked", data: this.serversService.toResponse(server) });
+	});
+
+	scanConnections = catchAsync(async (req: Request, res: Response) => {
+		const teamId = requireTeamId(req.user?.teamId);
+		const { id } = serverIdParamValidation.parse(req.params);
+		const neighbors = await this.serversService.scanConnections(id, teamId);
+		return res.status(200).json({ success: true, msg: `Discovered ${neighbors.length} neighbors`, data: neighbors });
 	});
 }
 

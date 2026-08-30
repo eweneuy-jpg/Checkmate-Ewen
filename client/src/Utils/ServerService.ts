@@ -67,4 +67,13 @@ export const ServerService = {
 	deleteServer: async (id: string): Promise<void> => {
 		await deleteOp(`${BASE}/${id}`);
 	},
+
+	scanConnections: async (id: string): Promise<{
+		localPort: string;
+		remoteHostname: string;
+		remotePort: string;
+	}[]> => {
+		const res: AxiosResponse<{ data: { localPort: string; remoteHostname: string; remotePort: string }[] }> = await post(`${BASE}/${id}/scan-connections`, {});
+		return res.data.data;
+	},
 };

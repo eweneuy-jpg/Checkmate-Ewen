@@ -10,5 +10,6 @@ export const createServerRoutes = (serverController: IServersController): Router
 	router.delete("/:id", serverController.deleteServer);
 	router.post("/:id/monitors", serverController.linkMonitor);
 	router.delete("/:id/monitors/:monitorId", serverController.unlinkMonitor);
+	router.post("/:id/scan-connections", serverController.scanConnections);
 	return router;
 };
