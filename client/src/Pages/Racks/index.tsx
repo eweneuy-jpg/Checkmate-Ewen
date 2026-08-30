@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box, Typography, CircularProgress, TextField, MenuItem, Paper } from "@mui/material";
+import { Box, Typography, CircularProgress, TextField, MenuItem, Paper, Button, IconButton } from "@mui/material";
 import Grid from "@mui/material/Grid";
+import { Plus, Pencil } from "lucide-react";
 import { RackDiagram } from "@/Components/racks/RackDiagram";
 import { ServerDetailPanel } from "@/Components/racks/ServerDetailPanel";
 import { SummaryCards } from "@/Components/racks/SummaryCards";
@@ -9,6 +10,7 @@ import { NetworkTopology } from "@/Components/racks/NetworkTopology";
 import { IncidentPanel } from "@/Components/racks/IncidentPanel";
 import { SystemLogs } from "@/Components/racks/SystemLogs";
 import { EnvironmentPanel } from "@/Components/racks/EnvironmentPanel";
+import { RackFormDialog } from "@/Components/racks/RackFormDialog";
 import { RackService } from "@/Utils/RackService";
 import type { RackSummary, RackWithSlots, RackServer } from "@/Types/Rack";
 
@@ -19,6 +21,8 @@ const RacksDashboard = () => {
 	const [loading, setLoading] = useState(true);
 	const [selectedServer, setSelectedServer] = useState<RackServer | null>(null);
 	const [selectedServerRack, setSelectedServerRack] = useState<RackWithSlots | null>(null);
+	const [rackFormOpen, setRackFormOpen] = useState(false);
+	const [editingRack, setEditingRack] = useState<RackSummary | null>(null);
 
 	const loadRacks = useCallback(async () => {
 		setLoading(true);
@@ -70,39 +74,65 @@ const RacksDashboard = () => {
 				<Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
 					<Paper variant="outlined" sx={{ p: 2 }}>
 						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-							<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Server Racks</Typography>
-							<TextField
-								select
-								size="small"
-								label="Rack"
-								value={selectedRackId}
-								onChange={(e) => setSelectedRackId(e.target.value)}
-								sx={{ minWidth: 200 }}
-							>
-								<MenuItem value="ALL">All Racks ({summaries.length})</MenuItem>
-								{summaries.map((s) => (
-									<MenuItem key={s.id} value={s.id}>
-										{s.name} — {s.serverCount} servers, {s.usedU}/{s.totalU}U
-									</MenuItem>
-								))}
-							</TextField>
-						</Box>
+								<Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Server Racks</Typography>
+								<Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+									<TextField
+										select
+										size="small"
+										label="Rack"
+										value={selectedRackId}
+										onChange={(e) => setSelectedRackId(e.target.value)}
+										sx={{ minWidth: 200 }}
+									>
+										<MenuItem value="ALL">All Racks ({summaries.length})</MenuItem>
+										{summaries.map((s) => (
+											<MenuItem key={s.id} value={s.id}>
+												{s.name} — {s.serverCount} servers, {s.usedU}/{s.totalU}U
+											</MenuItem>
+										))}
+									</TextField>
+									<Button
+										variant="contained"
+										size="small"
+										startIcon={<Plus size={16} />}
+										onClick={() => { setEditingRack(null); setRackFormOpen(true); }}
+									>
+										Add Rack
+									</Button>
+								</Box>
+							</Box>
 						<Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
 							<Box sx={{ flex: 1, display: "flex", gap: 1.5, flexWrap: "wrap", justifyContent: "center" }}>
 								{filteredRacks.length === 0 ? (
-									<Typography color="text.secondary" sx={{ p: 4, textAlign: "center" }}>
-										No racks found. Create one via Telegram: <code>/addrack name location [totalU]</code>
-									</Typography>
-								) : (
-									filteredRacks.map((rack) => (
-										<RackDiagram
-											key={rack.id}
-											rack={rack}
-											onServerClick={handleServerClick}
-											selectedServerId={selectedServer?.id}
-										/>
-									))
-								)}
+											<Typography color="text.secondary" sx={{ p: 4, textAlign: "center" }}>
+												No racks found. Click <strong>Add Rack</strong> to create one.
+											</Typography>
+										) : (
+											filteredRacks.map((rack) => (
+												<Box key={rack.id} sx={{ position: "relative" }}>
+													<IconButton
+														size="small"
+														onClick={() => {
+															const summary = summaries.find((s) => s.id === rack.id);
+															setEditingRack(summary ?? null);
+															setRackFormOpen(true);
+														}}
+														sx={{
+															position: "absolute", top: 24, right: -8, zIndex: 10,
+															bgcolor: "background.paper", border: 1, borderColor: "divider",
+															"&:hover": { borderColor: "primary.main", color: "primary.main" },
+														}}
+													>
+														<Pencil size={12} />
+													</IconButton>
+													<RackDiagram
+														rack={rack}
+														onServerClick={handleServerClick}
+														selectedServerId={selectedServer?.id}
+													/>
+												</Box>
+											))
+										)}
 							</Box>
 							<Box sx={{ width: 300, flexShrink: 0 }}>
 								{selectedServer && selectedServerRack ? (
@@ -142,6 +172,14 @@ const RacksDashboard = () => {
 					)}
 				</Paper>
 			</Box>
+
+			{/* Rack CRUD Dialog */}
+			<RackFormDialog
+				open={rackFormOpen}
+				rack={editingRack}
+				onClose={() => setRackFormOpen(false)}
+				onSaved={loadRacks}
+			/>
 		</Box>
 	);
 };
