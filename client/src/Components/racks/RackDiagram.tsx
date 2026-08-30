@@ -1,4 +1,5 @@
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography, useTheme, IconButton } from "@mui/material";
+import { Pencil, Link2 } from "lucide-react";
 import type { RackWithSlots, RackServer, ServerOverallStatus } from "@/Types/Rack";
 
 const statusColors: Record<ServerOverallStatus, { bg: string; border: string; led: string }> = {
@@ -13,9 +14,11 @@ interface Props {
 	rack: RackWithSlots;
 	onServerClick: (server: RackServer, rack: RackWithSlots) => void;
 	selectedServerId?: string;
+	onEditServer?: (server: RackServer) => void;
+	onManageConnections?: (server: RackServer) => void;
 }
 
-export const RackDiagram = ({ rack, onServerClick, selectedServerId }: Props) => {
+export const RackDiagram = ({ rack, onServerClick, selectedServerId, onEditServer, onManageConnections }: Props) => {
 	const theme = useTheme();
 	const isDark = theme.palette.mode === "dark";
 	const usedU = rack.usedU ?? rack.slots.filter((s) => s.server).length;
@@ -162,6 +165,28 @@ export const RackDiagram = ({ rack, onServerClick, selectedServerId }: Props) =>
 									>
 										{s.projectName}
 									</Typography>
+								)}
+								{(onEditServer || onManageConnections) && (
+									<Box component="span" sx={{ ml: "auto", display: "flex", gap: 0.25, opacity: 0, transition: "opacity 0.15s", "&:hover": { opacity: 1 } }}>
+										{onEditServer && (
+											<IconButton
+												size="small"
+												onClick={(e) => { e.stopPropagation(); onEditServer(s); }}
+												sx={{ p: 0.25, opacity: 0.5, "&:hover": { opacity: 1, color: "primary.main" } }}
+											>
+												<Pencil size={9} />
+											</IconButton>
+										)}
+										{onManageConnections && (
+											<IconButton
+												size="small"
+												onClick={(e) => { e.stopPropagation(); onManageConnections(s); }}
+												sx={{ p: 0.25, opacity: 0.5, "&:hover": { opacity: 1, color: "success.main" } }}
+											>
+												<Link2 size={9} />
+											</IconButton>
+										)}
+									</Box>
 								)}
 							</Box>
 						);

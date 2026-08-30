@@ -11,6 +11,8 @@ import { IncidentPanel } from "@/Components/racks/IncidentPanel";
 import { SystemLogs } from "@/Components/racks/SystemLogs";
 import { EnvironmentPanel } from "@/Components/racks/EnvironmentPanel";
 import { RackFormDialog } from "@/Components/racks/RackFormDialog";
+import { ServerFormDialog } from "@/Components/racks/ServerFormDialog";
+import { PortConnectionsDialog } from "@/Components/racks/PortConnectionsDialog";
 import { RackService } from "@/Utils/RackService";
 import type { RackSummary, RackWithSlots, RackServer } from "@/Types/Rack";
 
@@ -23,6 +25,12 @@ const RacksDashboard = () => {
 	const [selectedServerRack, setSelectedServerRack] = useState<RackWithSlots | null>(null);
 	const [rackFormOpen, setRackFormOpen] = useState(false);
 	const [editingRack, setEditingRack] = useState<RackSummary | null>(null);
+	const [serverFormOpen, setServerFormOpen] = useState(false);
+	const [editingServer, setEditingServer] = useState<RackServer | null>(null);
+	const [serverFormRackId, setServerFormRackId] = useState("");
+	const [serverFormRackU, setServerFormRackU] = useState(42);
+	const [connDialogOpen, setConnDialogOpen] = useState(false);
+	const [connServer, setConnServer] = useState<RackServer | null>(null);
 
 	const loadRacks = useCallback(async () => {
 		setLoading(true);
@@ -110,27 +118,54 @@ const RacksDashboard = () => {
 										) : (
 											filteredRacks.map((rack) => (
 												<Box key={rack.id} sx={{ position: "relative" }}>
-													<IconButton
-														size="small"
-														onClick={() => {
-															const summary = summaries.find((s) => s.id === rack.id);
-															setEditingRack(summary ?? null);
-															setRackFormOpen(true);
-														}}
-														sx={{
-															position: "absolute", top: 24, right: -8, zIndex: 10,
-															bgcolor: "background.paper", border: 1, borderColor: "divider",
-															"&:hover": { borderColor: "primary.main", color: "primary.main" },
-														}}
-													>
-														<Pencil size={12} />
-													</IconButton>
-													<RackDiagram
-														rack={rack}
-														onServerClick={handleServerClick}
-														selectedServerId={selectedServer?.id}
-													/>
-												</Box>
+																<IconButton
+																	size="small"
+																	onClick={() => {
+																		const summary = summaries.find((s) => s.id === rack.id);
+																		setEditingRack(summary ?? null);
+																		setRackFormOpen(true);
+																	}}
+																	sx={{
+																		position: "absolute", top: 24, right: -8, zIndex: 10,
+																		bgcolor: "background.paper", border: 1, borderColor: "divider",
+																		"&:hover": { borderColor: "primary.main", color: "primary.main" },
+																	}}
+																>
+																	<Pencil size={12} />
+																</IconButton>
+																<IconButton
+																	size="small"
+																	onClick={() => {
+																		setEditingServer(null);
+																		setServerFormRackId(rack.id);
+																		setServerFormRackU(rack.totalU);
+																		setServerFormOpen(true);
+																	}}
+																	sx={{
+																		position: "absolute", top: 24, right: 28, zIndex: 10,
+																		bgcolor: "background.paper", border: 1, borderColor: "divider",
+																		"&:hover": { borderColor: "success.main", color: "success.main" },
+																	}}
+																>
+																	<Plus size={12} />
+																</IconButton>
+																<RackDiagram
+																	rack={rack}
+																	onServerClick={handleServerClick}
+																	selectedServerId={selectedServer?.id}
+																	onEditServer={(srv) => {
+																		setEditingServer(srv);
+																		setServerFormRackId(rack.id);
+																		setServerFormRackU(rack.totalU);
+																		setServerFormOpen(true);
+																	}}
+																	onManageConnections={(srv) => {
+																		setConnServer(srv);
+																		setSelectedServerRack(rack);
+																		setConnDialogOpen(true);
+																	}}
+																/>
+															</Box>
 											))
 										)}
 							</Box>
@@ -178,6 +213,30 @@ const RacksDashboard = () => {
 				open={rackFormOpen}
 				rack={editingRack}
 				onClose={() => setRackFormOpen(false)}
+				onSaved={loadRacks}
+			/>
+
+			{/* Server CRUD Dialog */}
+			<ServerFormDialog
+				open={serverFormOpen}
+				server={editingServer}
+				rackId={serverFormRackId}
+				rackTotalU={serverFormRackU}
+				onClose={() => setServerFormOpen(false)}
+				onSaved={loadRacks}
+				onManagePorts={(srv) => {
+					setConnServer(srv);
+					setConnDialogOpen(true);
+				}}
+			/>
+
+			{/* Port Connections Dialog */}
+			<PortConnectionsDialog
+				open={connDialogOpen}
+				server={connServer}
+				rack={selectedServerRack}
+				allRacks={racks}
+				onClose={() => setConnDialogOpen(false)}
 				onSaved={loadRacks}
 			/>
 		</Box>
