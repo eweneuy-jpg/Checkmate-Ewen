@@ -31,12 +31,13 @@ interface Props {
 	server: RackServer | null;
 	rackId: string;
 	rackTotalU: number;
+	defaultUStart?: number;
 	onClose: () => void;
 	onSaved: () => void;
 	onManagePorts?: (server: RackServer) => void;
 }
 
-export const ServerFormDialog = ({ open, server, rackId, rackTotalU, onClose, onSaved, onManagePorts }: Props) => {
+export const ServerFormDialog = ({ open, server, rackId, rackTotalU, defaultUStart, onClose, onSaved, onManagePorts }: Props) => {
 	const isEdit = !!server;
 	const [hostname, setHostname] = useState("");
 	const [ipAddress, setIpAddress] = useState("");
@@ -67,7 +68,7 @@ export const ServerFormDialog = ({ open, server, rackId, rackTotalU, onClose, on
 			setOs(server?.os ?? "");
 			setHardwareModel(server?.hardwareModel ?? "");
 			setSerialNumber(server?.serialNumber ?? "");
-			setUStart(server?.uStart ?? 1);
+			setUStart(server?.uStart ?? defaultUStart ?? 1);
 			setUHeight(server?.uHeight ?? 1);
 			setFace(server?.face ?? "front");
 			setProjectName(server?.projectName ?? "");

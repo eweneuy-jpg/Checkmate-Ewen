@@ -14,7 +14,21 @@ import { RackFormDialog } from "@/Components/racks/RackFormDialog";
 import { ServerFormDialog } from "@/Components/racks/ServerFormDialog";
 import { PortConnectionsDialog } from "@/Components/racks/PortConnectionsDialog";
 import { RackService } from "@/Utils/RackService";
-import type { RackSummary, RackWithSlots, RackServer } from "@/Types/Rack";
+import type { RackSummary, RackWithSlots, RackServer, RackSlot } from "@/Types/Rack";
+
+/** Find first free U position in a rack (scan top→bottom, same as RackFlow). */
+const firstFreeUnit = (rack: RackWithSlots, height: number = 1): number => {
+	for (let u = rack.totalU; u >= 1; u--) {
+		// Check if [u, u+height) overlaps any occupied slot
+		let occupied = false;
+		for (let i = 0; i < height && (u + i) <= rack.totalU; i++) {
+			const slot = rack.slots.find((s: RackSlot) => s.u === u + i);
+			if (slot?.server) { occupied = true; break; }
+		}
+		if (!occupied) return u;
+	}
+	return 1; // fallback
+};
 
 const RacksDashboard = () => {
 	const [summaries, setSummaries] = useState<RackSummary[]>([]);
@@ -29,6 +43,7 @@ const RacksDashboard = () => {
 	const [editingServer, setEditingServer] = useState<RackServer | null>(null);
 	const [serverFormRackId, setServerFormRackId] = useState("");
 	const [serverFormRackU, setServerFormRackU] = useState(42);
+	const [serverFormDefaultU, setServerFormDefaultU] = useState(1);
 	const [connDialogOpen, setConnDialogOpen] = useState(false);
 	const [connServer, setConnServer] = useState<RackServer | null>(null);
 
@@ -136,11 +151,12 @@ const RacksDashboard = () => {
 																<IconButton
 																	size="small"
 																	onClick={() => {
-																		setEditingServer(null);
-																		setServerFormRackId(rack.id);
-																		setServerFormRackU(rack.totalU);
-																		setServerFormOpen(true);
-																	}}
+																				setEditingServer(null);
+																				setServerFormRackId(rack.id);
+																				setServerFormRackU(rack.totalU);
+																				setServerFormDefaultU(firstFreeUnit(rack));
+																				setServerFormOpen(true);
+																			}}
 																	sx={{
 																		position: "absolute", top: 24, right: 28, zIndex: 10,
 																		bgcolor: "background.paper", border: 1, borderColor: "divider",
@@ -222,6 +238,7 @@ const RacksDashboard = () => {
 				server={editingServer}
 				rackId={serverFormRackId}
 				rackTotalU={serverFormRackU}
+				defaultUStart={serverFormDefaultU}
 				onClose={() => setServerFormOpen(false)}
 				onSaved={loadRacks}
 				onManagePorts={(srv) => {
