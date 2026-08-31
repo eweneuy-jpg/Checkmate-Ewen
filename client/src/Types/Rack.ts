@@ -1,5 +1,20 @@
 export type ServerOverallStatus = "up" | "down" | "degraded" | "paused" | "unmonitored";
 export type RackFace = "front" | "back" | "both";
+export type VmStatus = "running" | "stopped" | "paused";
+
+export interface VirtualMachine {
+	id: string;
+	name: string;
+	vcpu: number;
+	ramMB: number;
+	diskGB: number;
+	os: string;
+	ipAddress: string;
+	macAddress: string;
+	vlanId: number | null;
+	status: VmStatus;
+	hypervisor: "proxmox" | "kvm" | "esxi";
+}
 
 export interface ServerPort {
 	name: string;

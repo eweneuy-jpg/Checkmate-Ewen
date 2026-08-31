@@ -19,6 +19,7 @@ export interface IServersController {
 	linkMonitor: RequestHandler;
 	unlinkMonitor: RequestHandler;
 	scanConnections: RequestHandler;
+	scanVms: RequestHandler;
 }
 
 const unlinkMonitorParamValidation = z.object({
@@ -84,7 +85,14 @@ class ServersController implements IServersController {
 		const teamId = requireTeamId(req.user?.teamId);
 		const { id } = serverIdParamValidation.parse(req.params);
 		const neighbors = await this.serversService.scanConnections(id, teamId);
-		return res.status(200).json({ success: true, msg: `Discovered ${neighbors.length} neighbors`, data: neighbors });
+		return res.status(200).json({ success: true, msg: "Discovered " + neighbors.length + " neighbors", data: neighbors });
+	});
+
+	scanVms = catchAsync(async (req: Request, res: Response) => {
+		const teamId = requireTeamId(req.user?.teamId);
+		const { id } = serverIdParamValidation.parse(req.params);
+		const vms = await this.serversService.scanVms(id, teamId);
+		return res.status(200).json({ success: true, msg: "Discovered " + vms.length + " VMs", data: vms });
 	});
 }
 

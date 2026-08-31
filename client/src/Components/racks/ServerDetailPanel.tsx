@@ -2,6 +2,7 @@ import { Card, CardContent, Typography, Box, Button, Chip } from "@mui/material"
 import Grid from "@mui/material/Grid";
 import { Shield, Terminal, Thermometer, Cpu, MemoryStick, Zap } from "lucide-react";
 import type { RackServer, RackWithSlots, ServerOverallStatus } from "@/Types/Rack";
+import { VmDetailPanel } from "@/Components/racks/VmDetailPanel";
 
 const statusColor: Record<ServerOverallStatus, string> = {
 	up: "#22c55e",
@@ -73,16 +74,9 @@ export const ServerDetailPanel = ({ server, rack }: Props) => {
 					</Typography>
 				</Box>
 
-				{server.isVmHost && server.vmNames && server.vmNames.length > 0 && (
-					<Box sx={{ mb: 1 }}>
-						<Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", fontSize: 9 }}>
-							VMs
-						</Typography>
-						<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
-							{server.vmNames.map((vm) => (
-								<Chip key={vm} label={vm} size="small" sx={{ fontSize: 10 }} />
-							))}
-						</Box>
+				{server.isVmHost && (
+					<Box sx={{ mb: 2 }}>
+						<VmDetailPanel server={server} />
 					</Box>
 				)}
 

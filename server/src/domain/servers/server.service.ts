@@ -6,6 +6,7 @@ import type { IMonitorsRepository } from "@/domain/monitors/monitor.repository.i
 import type { Server, ServerResponse, ServerSummary, ServerWithMonitors } from "./server.type.js";
 import { computeOverallStatus } from "./server.type.js";
 import { parseLldpNeighbors, getLldpCommand, type LldpNeighbor } from "./lldp.parser.js";
+import { detectHypervisor, getVmListCommand, getVmDetailCommand, parseProxmoxVms, parseKvmVms, parseEsxiVms, parseKvmStatuses, type VirtualMachine } from "./vm.parser.js";
 
 const SERVICE_NAME = "ServersService";
 
@@ -20,6 +21,7 @@ export interface IServersService {
 	unlinkMonitor(serverId: string, teamId: string, monitorId: string): Promise<Server>;
 	findByMonitorId(monitorId: string): Promise<Server | null>;
 	scanConnections(serverId: string, teamId: string): Promise<LldpNeighbor[]>;
+	scanVms(serverId: string, teamId: string): Promise<VirtualMachine[]>;
 	toResponse(server: Server): ServerResponse;
 }
 
@@ -178,6 +180,152 @@ export class ServersService implements IServersService {
 		});
 
 		return neighbors;
+	};
+
+	scanVms = async (serverId: string, teamId: string): Promise<VirtualMachine[]> => {
+		const server = await this.getServer(serverId, teamId);
+		if (!server.sshUsername) {
+			throw new AppError({ message: "Server has no SSH username configured", status: 400, service: SERVICE_NAME });
+		}
+		if (!server.sshPassword) {
+			throw new AppError({ message: "Server has no SSH password configured", status: 400, service: SERVICE_NAME });
+		}
+		if (!this.sshRunner) {
+			throw new AppError({ message: "SSH runner not available -- cannot scan", status: 500, service: SERVICE_NAME });
+		}
+
+		const hypervisor = detectHypervisor(server.os, server.role);
+		if (!hypervisor) {
+			throw new AppError({
+				message: "Could not detect hypervisor type. Set server OS to 'proxmox', 'esxi', or 'kvm'.",
+				status: 400,
+				service: SERVICE_NAME,
+			});
+		}
+
+		this.logger.info({
+			service: SERVICE_NAME,
+			method: "scanVms",
+			message: "VM scan: SSH " + server.sshUsername + "@" + server.ipAddress + ":" + server.sshPort + " -- hypervisor=" + hypervisor,
+		});
+
+		// Step 1: Get VM list
+		const listCmd = getVmListCommand(hypervisor);
+		const listOutput = await this.sshRunner.exec(
+			server.ipAddress,
+			server.sshPort,
+			server.sshUsername,
+			server.sshPassword,
+			listCmd,
+		);
+
+		if (hypervisor === "proxmox") {
+			// Step 2: Get config for each VM
+			const listVms = parseProxmoxVms(listOutput, new Map());
+			const configOutputs = new Map<string, string>();
+			for (const vm of listVms) {
+				const detailCmd = getVmDetailCommand("proxmox", vm.id);
+				try {
+					const configOutput = await this.sshRunner.exec(
+						server.ipAddress,
+						server.sshPort ?? 22,
+						server.sshUsername,
+						server.sshPassword,
+						detailCmd,
+					);
+					configOutputs.set(vm.id, configOutput);
+				} catch {
+					// Skip VMs that fail config fetch
+				}
+			}
+			const vms = parseProxmoxVms(listOutput, configOutputs);
+			this.logger.info({
+				service: SERVICE_NAME,
+				method: "scanVms",
+				message: "VM scan complete: " + vms.length + " VMs discovered on " + server.hostname,
+			});
+			// Auto-save VM names to server
+			await this.serversRepository.updateById(serverId, teamId, {
+				isVmHost: true,
+				vmNames: vms.map((v) => v.name),
+			});
+			return vms;
+		}
+
+		if (hypervisor === "kvm") {
+			// Step 2: Get status for each VM
+			const statusOutput = await this.sshRunner.exec(
+				server.ipAddress,
+				server.sshPort ?? 22,
+				server.sshUsername,
+				server.sshPassword,
+				"virsh list --all",
+			);
+			const statuses = parseKvmStatuses(statusOutput);
+
+			// Step 3: Get XML for each VM
+			const xmlOutputs = new Map<string, string>();
+			const listVms = listOutput.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+			for (const vmName of listVms) {
+				try {
+					const xmlOutput = await this.sshRunner.exec(
+						server.ipAddress,
+						server.sshPort ?? 22,
+						server.sshUsername,
+						server.sshPassword,
+						"virsh dumpxml " + vmName,
+					);
+					xmlOutputs.set(vmName, xmlOutput);
+				} catch {
+					// Skip VMs that fail XML fetch
+				}
+			}
+			const vms = parseKvmVms(listOutput, xmlOutputs, statuses);
+			this.logger.info({
+				service: SERVICE_NAME,
+				method: "scanVms",
+				message: "VM scan complete: " + vms.length + " VMs discovered on " + server.hostname,
+			});
+			await this.serversRepository.updateById(serverId, teamId, {
+				isVmHost: true,
+				vmNames: vms.map((v) => v.name),
+			});
+			return vms;
+		}
+
+		// ESXi
+		const summaryOutputs = new Map<string, string>();
+		// Parse list to get VM IDs
+		const esxiListLines = listOutput.trim().split("\n").slice(1);
+		for (const line of esxiListLines) {
+			const parts = line.trim().split(/\s+/);
+			if (parts.length < 4) continue;
+			const vmId = parts[0];
+			if (!vmId) continue;
+			try {
+				const summaryOutput = await this.sshRunner.exec(
+					server.ipAddress,
+					server.sshPort ?? 22,
+					server.sshUsername,
+					server.sshPassword,
+					"vim-cmd vmsvc/get.summary " + vmId,
+				);
+				summaryOutputs.set(vmId, summaryOutput);
+			} catch {
+				// Skip VMs that fail summary fetch
+			}
+		}
+		const vms = parseEsxiVms(listOutput, summaryOutputs);
+		this.logger.info({
+			service: SERVICE_NAME,
+			method: "scanVms",
+			message: "VM scan complete: " + vms.length + " VMs discovered on " + server.hostname,
+		});
+		await this.serversRepository.updateById(serverId, teamId, {
+			isVmHost: true,
+			vmNames: vms.map((v) => v.name),
+		});
+		return vms;
 	};
 
 	toResponse = (server: Server): ServerResponse => {
