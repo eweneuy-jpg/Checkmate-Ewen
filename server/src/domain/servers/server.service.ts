@@ -6,7 +6,7 @@ import type { IMonitorsRepository } from "@/domain/monitors/monitor.repository.i
 import type { Server, ServerResponse, ServerSummary, ServerWithMonitors } from "./server.type.js";
 import { computeOverallStatus } from "./server.type.js";
 import { parseLldpNeighbors, getLldpCommand, type LldpNeighbor } from "./lldp.parser.js";
-import { detectHypervisor, getVmListCommand, getVmDetailCommand, parseProxmoxVms, parseKvmVms, parseEsxiVms, parseKvmStatuses, type VirtualMachine } from "./vm.parser.js";
+import { detectHypervisor, getVmListCommand, getVmDetailCommand, parseProxmoxVms, parseKvmVms, parseEsxiVms, parseKvmStatuses, parseProxmoxGuestIp, parseArpTable, enrichVmsWithIp, getVmIpCommand, parseEsxiGuestIp, parseKvmGuestIp, type VirtualMachine } from "./vm.parser.js";
 
 const SERVICE_NAME = "ServersService";
 
@@ -244,6 +244,8 @@ export class ServersService implements IServersService {
 				}
 			}
 			const vms = parseProxmoxVms(listOutput, configOutputs);
+			// Best-effort IP discovery (guest agent, then ARP fallback)
+			await this.discoverVmIps(server, hypervisor, vms);
 			this.logger.info({
 				service: SERVICE_NAME,
 				method: "scanVms",
@@ -287,6 +289,8 @@ export class ServersService implements IServersService {
 				}
 			}
 			const vms = parseKvmVms(listOutput, xmlOutputs, statuses);
+			// Best-effort IP discovery (guest agent, then ARP fallback)
+			await this.discoverVmIps(server, hypervisor, vms);
 			this.logger.info({
 				service: SERVICE_NAME,
 				method: "scanVms",
@@ -323,6 +327,8 @@ export class ServersService implements IServersService {
 			}
 		}
 		const vms = parseEsxiVms(listOutput, summaryOutputs);
+		// Best-effort IP discovery (guest agent, then ARP fallback)
+		await this.discoverVmIps(server, "esxi", vms);
 		this.logger.info({
 			service: SERVICE_NAME,
 			method: "scanVms",
@@ -334,6 +340,50 @@ export class ServersService implements IServersService {
 			vms: vms as unknown as Server["vms"],
 		});
 		return vms;
+	};
+
+	/**
+	 * Best-effort IP discovery for scanned VMs.
+	 * 1. Guest-agent path per hypervisor (qm guest cmd / virsh domifaddr / vim-cmd get.guest)
+	 * 2. ARP table fallback on the hypervisor (cross-ref by MAC).
+	 * Failures are silent — IP stays "" rather than failing the scan.
+	 */
+	discoverVmIps = async (
+		server: Server,
+		hypervisor: "proxmox" | "kvm" | "esxi",
+		vms: VirtualMachine[],
+	): Promise<void> => {
+		if (!this.sshRunner || vms.length === 0) return;
+		const exec = (cmd: string) =>
+			this.sshRunner!.exec(server.ipAddress, server.sshPort ?? 22, server.sshUsername ?? "", server.sshPassword ?? "", cmd);
+
+		// 1. Guest agent per running VM without an IP yet
+		for (const vm of vms) {
+			if (vm.ipAddress) continue;
+			const cmd = getVmIpCommand(hypervisor, vm.id, vm.name, vm.status);
+			if (!cmd) continue;
+			try {
+				const output = await exec(cmd);
+				let ip = "";
+				if (hypervisor === "proxmox") ip = parseProxmoxGuestIp(output);
+				else if (hypervisor === "kvm") ip = parseKvmGuestIp(output);
+				else ip = parseEsxiGuestIp(output);
+				if (ip) vm.ipAddress = ip;
+			} catch {
+				// guest agent unavailable (not installed / VM agent off) — fall through to ARP
+			}
+		}
+
+		// 2. ARP table fallback for VMs still missing an IP
+		const missing = vms.filter((v) => !v.ipAddress);
+		if (missing.length === 0) return;
+		try {
+			const arpOutput = await exec("ip neigh");
+			const macToIp = parseArpTable(arpOutput);
+			enrichVmsWithIp(missing, macToIp);
+		} catch {
+			// no arp on this host — leave IPs empty
+		}
 	};
 
 	toResponse = (server: Server): ServerResponse => {

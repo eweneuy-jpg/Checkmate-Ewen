@@ -472,3 +472,124 @@ export const parseKvmStatuses = (output: string): Map<string, VmStatus> => {
 	}
 	return statuses;
 };
+
+// -- IP discovery --
+
+/**
+ * Parse `qm guest cmd <vmid> network-get-interfaces` JSON-ish output.
+ * Proxmox guest agent returns JSON array like:
+ * [
+ *   {"name":"eth0","ip-addresses":[{"ip-address":"10.10.10.51","ip-address-type":"ipv4"},...]},
+ *   ...
+ * ]
+ * Returns the first IPv4 found.
+ */
+export const parseProxmoxGuestIp = (output: string): string => {
+	// Try JSON parse first
+	try {
+		const data = JSON.parse(output);
+		if (Array.isArray(data)) {
+			for (const iface of data) {
+				const addrs = iface?.["ip-addresses"];
+				if (Array.isArray(addrs)) {
+					for (const a of addrs) {
+						if (a?.["ip-address-type"] === "ipv4" && a["ip-address"]) {
+							return a["ip-address"] as string;
+						}
+					}
+				}
+			}
+		}
+	} catch {
+		// fall through to regex
+	}
+	// Fallback regex — values may be formatted as key:value lines
+	const ipv4 = output.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+	return ipv4 && ipv4[1] ? ipv4[1] : "";
+};
+
+/**
+ * Parse `ip neigh` (Linux ARP/NDP table) output:
+ *   10.10.10.51 dev vmbr0 lladdr 52:54:00:12:34:56 REACHABLE
+ *   10.10.10.52 dev vmbr0 lladdr 52:54:00:12:34:57 STALE
+ * Builds a MAC -> IP map.
+ */
+export const parseArpTable = (output: string): Map<string, string> => {
+	const macToIp = new Map<string, string>();
+	const lines = output.trim().split("\n");
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed) continue;
+		const m = trimmed.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}).*lladdr\s+([0-9a-fA-F:]{17})/);
+		if (m && m[1] && m[2]) {
+			const ip = m[1];
+			const mac = m[2].toLowerCase();
+			if (!macToIp.has(mac)) macToIp.set(mac, ip);
+		}
+	}
+	return macToIp;
+};
+
+/** Enrich a VM list with IPs from a MAC->IP map (from ARP table). */
+export const enrichVmsWithIp = (vms: VirtualMachine[], macToIp: Map<string, string>): void => {
+	for (const vm of vms) {
+		if (!vm.ipAddress && vm.macAddress) {
+			const ip = macToIp.get(vm.macAddress.toLowerCase());
+			if (ip) vm.ipAddress = ip;
+		}
+	}
+};
+
+// -- IP discovery commands --
+
+/**
+ * Best-effort command to fetch a running VM's IP via guest agent.
+ * Returns null when the hypervisor/VM has no agent path.
+ * Proxmox: qm guest cmd <vmid> network-get-interfaces (needs qemu-guest-agent)
+ * KVM:     virsh domifaddr <name> --source agent (needs qemu-guest-agent)
+ * ESXi:    vim-cmd vmsvc/get.guest <vmid> (returns ipAddress when tools run)
+ */
+export const getVmIpCommand = (
+	hypervisor: "proxmox" | "kvm" | "esxi",
+	vmId: string,
+	vmName: string,
+	status: string,
+): string | null => {
+	if (status !== "running") return null; // stopped VMs have no guest agent
+	if (hypervisor === "proxmox") return "qm guest cmd " + vmId + " network-get-interfaces";
+	if (hypervisor === "kvm") return "virsh domifaddr " + vmName + " --source agent";
+	// esxi
+	return "vim-cmd vmsvc/get.guest " + vmId;
+};
+
+/**
+ * Parse `vim-cmd vmsvc/get.guest` output (key = value pairs) for IP:
+ *   ipAddress = "10.10.10.51"
+ * Returns first IPv4 found.
+ */
+export const parseEsxiGuestIp = (output: string): string => {
+	const m = output.match(/ipAddress\s*=\s*"([^"]+)"/);
+	if (m && m[1]) {
+		const first = m[1].split(",")[0] ?? "";
+		return first.trim();
+	}
+	return "";
+};
+
+/**
+ * Parse `virsh domifaddr --source agent` output:
+ *   Name       MAC address          Protocol     Address
+ *   -------------------------------------------------------------------------------
+ *   vm-ubuntu  52:54:00:12:34:56    ipv4         10.10.10.51/24
+ * Returns first IPv4 with /prefix stripped.
+ */
+export const parseKvmGuestIp = (output: string): string => {
+	const lines = output.trim().split("\n");
+	for (let i = 2; i < lines.length; i++) {
+		const line = (lines[i] ?? "").trim();
+		if (!line) continue;
+		const m = line.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/\d+/);
+		if (m && m[1]) return m[1];
+	}
+	return "";
+};
