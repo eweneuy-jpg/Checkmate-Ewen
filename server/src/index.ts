@@ -17,6 +17,7 @@ import { IJobScheduler } from "@/worker/worker.interface.js";
 import { HealthServer, IHealthServer } from "@/worker/worker.health-server.js";
 import { TelegramBot } from "@/domain/telegram/telegram.bot.js";
 import { parseTelegramBotConfig } from "@/domain/telegram/telegram.config.js";
+import { VmRescanScheduler } from "@/domain/servers/vm.rescan-scheduler.js";
 const SERVICE_NAME = "Server";
 let logger: ILogger;
 
@@ -135,6 +136,30 @@ const startApp = async () => {
 				method: "startApp",
 			});
 		}
+	}
+
+	// ***********************
+	// Start VM rescan scheduler (auto-refresh VM specs periodically)
+	// ***********************
+	try {
+		const teamIds = await shared.teamsRepository.findAllTeamIds();
+		const teamId = teamIds[0] ?? "";
+		if (!teamId) {
+			logger.warn({
+				message: "No team found in DB — VM rescan scheduler cannot resolve teamId",
+				service: SERVICE_NAME,
+				method: "startApp",
+			});
+		} else {
+			const vmRescan = new VmRescanScheduler(logger, services.serversService, teamId);
+			vmRescan.start();
+		}
+	} catch (err) {
+		logger.warn({
+			message: "VM rescan scheduler init failed: " + (err instanceof Error ? err.message : "unknown"),
+			service: SERVICE_NAME,
+			method: "startApp",
+		});
 	}
 
 	initShutdownListener(server, { ...services, healthServer });

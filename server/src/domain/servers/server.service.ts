@@ -22,6 +22,7 @@ export interface IServersService {
 	findByMonitorId(monitorId: string): Promise<Server | null>;
 	scanConnections(serverId: string, teamId: string): Promise<LldpNeighbor[]>;
 	scanVms(serverId: string, teamId: string): Promise<VirtualMachine[]>;
+	listVmHosts(teamId: string): Promise<Server[]>;
 	toResponse(server: Server): ServerResponse;
 }
 
@@ -143,6 +144,10 @@ export class ServersService implements IServersService {
 
 	findByMonitorId = async (monitorId: string): Promise<Server | null> => {
 		return await this.serversRepository.findByMonitorId(monitorId);
+	};
+
+	listVmHosts = async (teamId: string): Promise<Server[]> => {
+		return await this.serversRepository.findVmHosts(teamId);
 	};
 
 	scanConnections = async (serverId: string, teamId: string): Promise<LldpNeighbor[]> => {

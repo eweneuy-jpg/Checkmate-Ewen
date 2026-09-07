@@ -4,6 +4,7 @@ export interface IServersRepository {
 	create(server: Omit<Server, "id" | "createdAt" | "updatedAt">): Promise<Server | null>;
 	findById(serverId: string, teamId: string): Promise<Server | null>;
 	findByTeamId(teamId: string): Promise<Server[]>;
+	findVmHosts(teamId: string): Promise<Server[]>;
 	findByHostname(hostname: string, teamId: string): Promise<Server | null>;
 	findByIpAddress(ip: string, teamId: string): Promise<Server | null>;
 	findByMonitorId(monitorId: string): Promise<Server | null>;

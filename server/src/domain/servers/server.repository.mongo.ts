@@ -79,6 +79,14 @@ export class MongoServersRepository implements IServersRepository {
 		return docs.map((d) => toDomain(d as ServerDocument)!);
 	};
 
+	findVmHosts = async (teamId: string): Promise<Server[]> => {
+		const docs = await ServerModel.find({
+			teamId: new Types.ObjectId(teamId),
+			isVmHost: true,
+		}).lean();
+		return docs.map((d) => toDomain(d as ServerDocument)!);
+	};
+
 	findByHostname = async (hostname: string, teamId: string): Promise<Server | null> => {
 		const doc = await ServerModel.findOne({
 			hostname,
