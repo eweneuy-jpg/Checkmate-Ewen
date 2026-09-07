@@ -37,9 +37,9 @@ interface Props {
 }
 
 export const VmDetailPanel = ({ server }: Props) => {
-	const [vms, setVms] = useState<VirtualMachine[]>([]);
+	const [vms, setVms] = useState<VirtualMachine[]>(server.vms ?? []);
 	const [scanning, setScanning] = useState(false);
-	const [scanned, setScanned] = useState(false);
+	const [scanned, setScanned] = useState((server.vms?.length ?? 0) > 0);
 	const [error, setError] = useState("");
 	const [expandedVm, setExpandedVm] = useState<string | null>(null);
 

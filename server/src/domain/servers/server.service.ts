@@ -244,10 +244,11 @@ export class ServersService implements IServersService {
 				method: "scanVms",
 				message: "VM scan complete: " + vms.length + " VMs discovered on " + server.hostname,
 			});
-			// Auto-save VM names to server
+			// Auto-save full VM records to server
 			await this.serversRepository.updateById(serverId, teamId, {
 				isVmHost: true,
 				vmNames: vms.map((v) => v.name),
+				vms: vms as unknown as Server["vms"],
 			});
 			return vms;
 		}
@@ -289,6 +290,7 @@ export class ServersService implements IServersService {
 			await this.serversRepository.updateById(serverId, teamId, {
 				isVmHost: true,
 				vmNames: vms.map((v) => v.name),
+				vms: vms as unknown as Server["vms"],
 			});
 			return vms;
 		}
@@ -324,6 +326,7 @@ export class ServersService implements IServersService {
 		await this.serversRepository.updateById(serverId, teamId, {
 			isVmHost: true,
 			vmNames: vms.map((v) => v.name),
+			vms: vms as unknown as Server["vms"],
 		});
 		return vms;
 	};

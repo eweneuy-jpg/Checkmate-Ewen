@@ -44,6 +44,21 @@ export interface ServerPort {
 	target?: string;
 }
 
+/** Virtual machine discovered on a VM host (embedded in Server.vms). */
+export interface VmRecord {
+	id: string;
+	name: string;
+	vcpu: number;
+	ramMB: number;
+	diskGB: number;
+	os: string;
+	ipAddress: string;
+	macAddress: string;
+	vlanId: number | null;
+	status: "running" | "stopped" | "paused";
+	hypervisor: "proxmox" | "kvm" | "esxi";
+}
+
 /** Computed from linked monitors — not stored. */
 export const ServerOverallStatuses = [
 	"up",
@@ -91,6 +106,8 @@ export interface Server {
 	isVmHost?: boolean;
 	/** VM names running on this host. */
 	vmNames?: string[];
+	/** Full VM records discovered by scan (embedded). */
+	vms?: VmRecord[];
 	/** Project name this server belongs to (e.g. "10-INTDC0", "APJI"). */
 	projectName?: string;
 	/** Port assignments (e.g. {name:"Port49", label:"Ke 10-SP"}). */

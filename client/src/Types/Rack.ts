@@ -46,6 +46,7 @@ export interface RackServer {
 	// VM / Project
 	isVmHost?: boolean;
 	vmNames?: string[];
+	vms?: VirtualMachine[];
 	projectName?: string;
 	ports?: ServerPort[];
 	createdAt: string;

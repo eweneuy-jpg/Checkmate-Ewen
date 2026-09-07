@@ -132,6 +132,24 @@ const ServerSchema = new Schema<ServerDocument>(
 			type: [String],
 			default: [],
 		},
+		vms: {
+			type: [
+				{
+					id: { type: String, trim: true },
+					name: { type: String, trim: true },
+					vcpu: { type: Number, default: 0 },
+					ramMB: { type: Number, default: 0 },
+					diskGB: { type: Number, default: 0 },
+					os: { type: String, default: "" },
+					ipAddress: { type: String, default: "" },
+					macAddress: { type: String, default: "" },
+					vlanId: { type: Number, default: null },
+					status: { type: String, enum: ["running", "stopped", "paused"], default: "stopped" },
+					hypervisor: { type: String, enum: ["proxmox", "kvm", "esxi"], default: "proxmox" },
+				},
+			],
+			default: [],
+		},
 		projectName: {
 			type: String,
 			trim: true,

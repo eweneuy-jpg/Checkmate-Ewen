@@ -34,6 +34,7 @@ const toDomain = (doc: ServerDocument | null): Server | null => {
 		// VM / Project
 		isVmHost: doc.isVmHost,
 		vmNames: doc.vmNames,
+		vms: doc.vms,
 		projectName: doc.projectName,
 		ports: doc.ports,
 		createdAt: doc.createdAt.toISOString(),
@@ -58,6 +59,9 @@ export class MongoServersRepository implements IServersRepository {
 			sshPort: data.sshPort,
 			monitors: data.monitors?.map((m) => new Types.ObjectId(m)) ?? [],
 			tags: data.tags ?? [],
+			isVmHost: data.isVmHost ?? false,
+			vmNames: data.vmNames ?? [],
+			vms: data.vms ?? [],
 		});
 		return toDomain(doc);
 	};
