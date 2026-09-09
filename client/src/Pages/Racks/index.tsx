@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { Box, Typography, CircularProgress, TextField, MenuItem, Paper, Button, IconButton } from "@mui/material";
-import Grid from "@mui/material/Grid";
 import { Plus, Pencil } from "lucide-react";
 import { RackDiagram } from "@/Components/racks/RackDiagram";
 import { ServerDetailPanel } from "@/Components/racks/ServerDetailPanel";

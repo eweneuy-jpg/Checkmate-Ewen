@@ -36,7 +36,7 @@ interface Connection {
 	toPort: string;
 }
 
-export const PortConnectionsDialog = ({ open, server, rack, allRacks, onClose, onSaved }: Props) => {
+export const PortConnectionsDialog = ({ open, server, rack, onClose, onSaved }: Props) => {
 	const [saving, setSaving] = useState(false);
 	const [scanning, setScanning] = useState(false);
 	const [scanResults, setScanResults] = useState<{ localPort: string; remoteHostname: string; remotePort: string }[]>([]);

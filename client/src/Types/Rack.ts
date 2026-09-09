@@ -19,6 +19,7 @@ export interface VirtualMachine {
 export interface ServerPort {
 	name: string;
 	label: string;
+	target?: string;
 }
 
 export interface RackServer {

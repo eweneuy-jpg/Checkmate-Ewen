@@ -31,7 +31,7 @@ export const ThermalHeatmap = ({ racks }: Props) => {
 			</Box>
 			<CardContent>
 				<Box sx={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 0.5 }}>
-					{allServers.slice(0, 32).map((s, i) => {
+					{allServers.slice(0, 32).map((_s, i) => {
 						const t = 25 + Math.floor(Math.random() * 15);
 						const c = tempClass(t);
 						return (
