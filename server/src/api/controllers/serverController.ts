@@ -8,6 +8,7 @@ import {
 	updateServerBodyValidation,
 	serverIdParamValidation,
 	linkMonitorBodyValidation,
+	provisionVmBodyValidation,
 } from "@/api/validation/index.js";
 
 export interface IServersController {
@@ -20,6 +21,8 @@ export interface IServersController {
 	unlinkMonitor: RequestHandler;
 	scanConnections: RequestHandler;
 	scanVms: RequestHandler;
+	listVmTemplates: RequestHandler;
+	provisionVm: RequestHandler;
 }
 
 const unlinkMonitorParamValidation = z.object({
@@ -93,6 +96,21 @@ class ServersController implements IServersController {
 		const { id } = serverIdParamValidation.parse(req.params);
 		const vms = await this.serversService.scanVms(id, teamId);
 		return res.status(200).json({ success: true, msg: "Discovered " + vms.length + " VMs", data: vms });
+	});
+
+	listVmTemplates = catchAsync(async (req: Request, res: Response) => {
+		const teamId = requireTeamId(req.user?.teamId);
+		const { id } = serverIdParamValidation.parse(req.params);
+		const templates = await this.serversService.listVmTemplates(id, teamId);
+		return res.status(200).json({ success: true, msg: "Retrieved " + templates.length + " templates", data: templates });
+	});
+
+	provisionVm = catchAsync(async (req: Request, res: Response) => {
+		const teamId = requireTeamId(req.user?.teamId);
+		const { id } = serverIdParamValidation.parse(req.params);
+		const spec = provisionVmBodyValidation.parse(req.body);
+		const vm = await this.serversService.provisionVm(id, teamId, spec);
+		return res.status(201).json({ success: true, msg: "VM provisioned", data: vm });
 	});
 }
 

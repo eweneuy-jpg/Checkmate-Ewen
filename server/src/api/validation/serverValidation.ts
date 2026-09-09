@@ -42,3 +42,17 @@ export const serverIdParamValidation = z.object({
 export const linkMonitorBodyValidation = z.object({
 	monitorId: z.string().min(1, "monitorId is required"),
 });
+
+export const provisionVmBodyValidation = z.object({
+	name: z.string().min(1, "name is required").max(100).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/, "name must start alphanumeric and contain only [a-zA-Z0-9._-]"),
+	templateId: z.string().min(1, "templateId is required"),
+	vcpu: z.number().int().min(1).max(128).default(2),
+	ramMB: z.number().int().min(256).max(1048576).default(2048),
+	diskGB: z.number().int().min(1).max(16384).default(20),
+	storage: z.string().max(100).optional(),
+	bridge: z.string().max(100).optional(),
+	vlanTag: z.number().int().min(1).max(4094).optional(),
+	ipAddress: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "ipAddress must be a valid IPv4").optional(),
+	gateway: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/, "gateway must be a valid IPv4").optional(),
+	startVm: z.boolean().default(true),
+});

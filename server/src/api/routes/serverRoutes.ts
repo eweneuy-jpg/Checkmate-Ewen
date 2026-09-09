@@ -12,5 +12,7 @@ export const createServerRoutes = (serverController: IServersController): Router
 	router.delete("/:id/monitors/:monitorId", serverController.unlinkMonitor);
 	router.post("/:id/scan-connections", serverController.scanConnections);
 	router.post("/:id/scan-vms", serverController.scanVms);
+	router.get("/:id/vm-templates", serverController.listVmTemplates);
+	router.post("/:id/vms", serverController.provisionVm);
 	return router;
 };

@@ -1,6 +1,6 @@
 import { get, post, patch, deleteOp } from "@/Utils/ApiClient";
 import type { AxiosResponse } from "axios";
-import type { RackServer, VirtualMachine } from "@/Types/Rack";
+import type { RackServer, VirtualMachine, VmTemplate, ProvisionVmSpec } from "@/Types/Rack";
 
 const BASE = "/servers";
 
@@ -79,6 +79,16 @@ export const ServerService = {
 
 	scanVms: async (id: string): Promise<VirtualMachine[]> => {
 		const res: AxiosResponse<{ data: VirtualMachine[] }> = await post(`${BASE}/${id}/scan-vms`, {});
+		return res.data.data;
+	},
+
+	listVmTemplates: async (id: string): Promise<VmTemplate[]> => {
+		const res: AxiosResponse<{ data: VmTemplate[] }> = await get(`${BASE}/${id}/vm-templates`);
+		return res.data.data;
+	},
+
+	provisionVm: async (id: string, spec: ProvisionVmSpec): Promise<VirtualMachine> => {
+		const res: AxiosResponse<{ data: VirtualMachine }> = await post(`${BASE}/${id}/vms`, spec);
 		return res.data.data;
 	},
 };

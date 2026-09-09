@@ -16,6 +16,29 @@ export interface VirtualMachine {
 	hypervisor: "proxmox" | "kvm" | "esxi";
 }
 
+export interface VmTemplate {
+	id: string;
+	name: string;
+	os: string;
+	diskGB: number;
+	ramMB: number;
+	vcpu: number;
+}
+
+export interface ProvisionVmSpec {
+	name: string;
+	templateId: string;
+	vcpu: number;
+	ramMB: number;
+	diskGB: number;
+	storage?: string;
+	bridge?: string;
+	vlanTag?: number;
+	ipAddress?: string;
+	gateway?: string;
+	startVm: boolean;
+}
+
 export interface ServerPort {
 	name: string;
 	label: string;

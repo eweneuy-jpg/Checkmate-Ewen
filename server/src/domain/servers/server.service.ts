@@ -7,6 +7,7 @@ import type { Server, ServerResponse, ServerSummary, ServerWithMonitors } from "
 import { computeOverallStatus } from "./server.type.js";
 import { parseLldpNeighbors, getLldpCommand, type LldpNeighbor } from "./lldp.parser.js";
 import { detectHypervisor, getVmListCommand, getVmDetailCommand, parseProxmoxVms, parseKvmVms, parseEsxiVms, parseKvmStatuses, parseProxmoxGuestIp, parseArpTable, enrichVmsWithIp, getVmIpCommand, parseEsxiGuestIp, parseKvmGuestIp, type VirtualMachine } from "./vm.parser.js";
+import { detectProxmoxTemplates, detectKvmTemplates, parseProxmoxVmListEntries, pickFreeVmid, isProxmoxTemplate, buildProxmoxProvisionCommand, buildKvmProvisionCommand, type VmTemplate, type ProvisionVmSpec } from "./vm.provisioner.js";
 
 const SERVICE_NAME = "ServersService";
 
@@ -23,6 +24,8 @@ export interface IServersService {
 	scanConnections(serverId: string, teamId: string): Promise<LldpNeighbor[]>;
 	scanVms(serverId: string, teamId: string): Promise<VirtualMachine[]>;
 	listVmHosts(teamId: string): Promise<Server[]>;
+	listVmTemplates(serverId: string, teamId: string): Promise<VmTemplate[]>;
+	provisionVm(serverId: string, teamId: string, spec: ProvisionVmSpec): Promise<VirtualMachine>;
 	toResponse(server: Server): ServerResponse;
 }
 
@@ -148,6 +151,132 @@ export class ServersService implements IServersService {
 
 	listVmHosts = async (teamId: string): Promise<Server[]> => {
 		return await this.serversRepository.findVmHosts(teamId);
+	};
+
+	private getSshReadyServer = async (serverId: string, teamId: string): Promise<Server> => {
+		const server = await this.getServer(serverId, teamId);
+		if (!server.sshUsername || !server.sshPassword) {
+			throw new AppError({ message: "Server has no SSH credentials configured", status: 400, service: SERVICE_NAME });
+		}
+		if (!this.sshRunner) {
+			throw new AppError({ message: "SSH runner not available — cannot operate on hypervisor", status: 500, service: SERVICE_NAME });
+		}
+		return server;
+	};
+
+	private sshExec = async (server: Server, command: string): Promise<string> => {
+		return await this.sshRunner!.exec(
+			server.ipAddress,
+			server.sshPort ?? 22,
+			server.sshUsername ?? "",
+			server.sshPassword ?? "",
+			command,
+		);
+	};
+
+	listVmTemplates = async (serverId: string, teamId: string): Promise<VmTemplate[]> => {
+		const server = await this.getSshReadyServer(serverId, teamId);
+		const hypervisor = detectHypervisor(server.os, server.role);
+		if (!hypervisor) {
+			throw new AppError({ message: "Could not detect hypervisor type", status: 400, service: SERVICE_NAME });
+		}
+		if (hypervisor === "esxi") {
+			throw new AppError({ message: "ESXi does not support clone-from-template over SSH", status: 400, service: SERVICE_NAME });
+		}
+		if (hypervisor === "kvm") {
+			const output = await this.sshExec(server, "virsh list --all --name");
+			return detectKvmTemplates(output);
+		}
+		// proxmox
+		const listOutput = await this.sshExec(server, "qm list");
+		const entries = parseProxmoxVmListEntries(listOutput);
+		const configOutputs = new Map<string, string>();
+		for (const e of entries) {
+			try {
+				const cfg = await this.sshExec(server, "qm config " + e.id);
+				configOutputs.set(String(e.id), cfg);
+			} catch {
+				// template may be locked/stopped — skip config fetch
+			}
+		}
+		return detectProxmoxTemplates(listOutput, configOutputs);
+	};
+
+	provisionVm = async (serverId: string, teamId: string, spec: ProvisionVmSpec): Promise<VirtualMachine> => {
+		const server = await this.getSshReadyServer(serverId, teamId);
+		const hypervisor = detectHypervisor(server.os, server.role);
+		if (!hypervisor) {
+			throw new AppError({ message: "Could not detect hypervisor type", status: 400, service: SERVICE_NAME });
+		}
+		if (hypervisor === "esxi") {
+			throw new AppError({ message: "ESXi provisioning is not supported over SSH", status: 400, service: SERVICE_NAME });
+		}
+
+		let newId: string;
+		let command: string;
+
+		if (hypervisor === "proxmox") {
+			// Resolve template + free VMID
+			const listOutput = await this.sshExec(server, "qm list");
+			const entries = parseProxmoxVmListEntries(listOutput);
+			let template: VmTemplate | undefined;
+			try {
+				const cfg = await this.sshExec(server, "qm config " + spec.templateId);
+				if (isProxmoxTemplate(cfg)) {
+					const t = detectProxmoxTemplates(listOutput, new Map([[spec.templateId, cfg]]));
+					template = t[0];
+				}
+			} catch {
+				template = undefined;
+			}
+			if (!template) {
+				throw new AppError({ message: "Template " + spec.templateId + " not found or is not a template", status: 400, service: SERVICE_NAME });
+			}
+			const templateIds = entries.filter((e) => e.id >= 9000).map((e) => e.id);
+			const freeVmid = pickFreeVmid(entries.map((e) => e.id), templateIds);
+			newId = String(freeVmid);
+			command = buildProxmoxProvisionCommand(spec, template, freeVmid);
+		} else {
+			// kvm — virt-clone
+			newId = spec.name;
+			command = buildKvmProvisionCommand(spec, spec.name);
+		}
+
+		this.logger.info({
+			service: SERVICE_NAME,
+			method: "provisionVm",
+			message: "Provisioning VM '" + spec.name + "' on " + server.hostname + " (" + hypervisor + "): " + command,
+		});
+		try {
+			await this.sshExec(server, command);
+		} catch (err) {
+			throw new AppError({
+				message: "VM provisioning failed: " + (err instanceof Error ? err.message : "unknown"),
+				status: 500,
+				service: SERVICE_NAME,
+			});
+		}
+
+		// Auto-scan to pick up the new VM record + persist
+		const vms = await this.scanVms(serverId, teamId);
+		const created = vms.find((v) => v.id === newId || v.name === spec.name);
+		if (created) {
+			return created;
+		}
+		// Scan may not show it immediately (qm list races) — return a minimal record
+		return {
+			id: newId,
+			name: spec.name,
+			vcpu: spec.vcpu,
+			ramMB: spec.ramMB,
+			diskGB: spec.diskGB,
+			os: "",
+			ipAddress: spec.ipAddress ?? "",
+			macAddress: "",
+			vlanId: spec.vlanTag ?? null,
+			status: spec.startVm ? "running" : "stopped",
+			hypervisor,
+		};
 	};
 
 	scanConnections = async (serverId: string, teamId: string): Promise<LldpNeighbor[]> => {

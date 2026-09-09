@@ -22,9 +22,11 @@ import {
 	Network,
 	Tag,
 	MonitorPlay,
+	Plus,
 } from "lucide-react";
 import type { RackServer, VirtualMachine, VmStatus } from "@/Types/Rack";
 import { ServerService } from "@/Utils/ServerService";
+import { VmFormDialog } from "@/Components/racks/VmFormDialog";
 
 const vmStatusColor: Record<VmStatus, string> = {
 	running: "#22c55e",
@@ -42,6 +44,7 @@ export const VmDetailPanel = ({ server }: Props) => {
 	const [scanned, setScanned] = useState((server.vms?.length ?? 0) > 0);
 	const [error, setError] = useState("");
 	const [expandedVm, setExpandedVm] = useState<string | null>(null);
+	const [createOpen, setCreateOpen] = useState(false);
 
 	const handleScan = async () => {
 		setScanning(true);
@@ -58,6 +61,13 @@ export const VmDetailPanel = ({ server }: Props) => {
 		}
 	};
 
+	const handleCreated = (vm: VirtualMachine) => {
+		// Prepend the new VM to the list
+		setVms((prev) => [vm, ...prev.filter((v) => v.id !== vm.id)]);
+		setScanned(true);
+		setExpandedVm(vm.id);
+	};
+
 	const formatRam = (mb: number): string => {
 		if (mb >= 1024) return (mb / 1024).toFixed(0) + " GB";
 		return mb + " MB";
@@ -67,21 +77,33 @@ export const VmDetailPanel = ({ server }: Props) => {
 	const existingVmNames = server.vmNames ?? [];
 
 	return (
-		<Box>
-			<Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+		<>
+			<Box>
+				<Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
 				<Typography variant="subtitle2" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
 					<MonitorPlay size={14} />
 					Virtual Machines
 				</Typography>
-				<Button
-					variant="outlined"
-					size="small"
-					startIcon={scanning ? <CircularProgress size={14} /> : <Radar size={14} />}
-					onClick={handleScan}
-					disabled={scanning}
-				>
-					{scanning ? "Scanning..." : "Scan VMs"}
-				</Button>
+				<Box sx={{ display: "flex", gap: 0.5 }}>
+					<Button
+						variant="contained"
+						size="small"
+						startIcon={<Plus size={13} />}
+						onClick={() => setCreateOpen(true)}
+						sx={{ fontSize: 10 }}
+					>
+						New VM
+					</Button>
+					<Button
+						variant="outlined"
+						size="small"
+						startIcon={scanning ? <CircularProgress size={14} /> : <Radar size={14} />}
+						onClick={handleScan}
+						disabled={scanning}
+					>
+						{scanning ? "Scanning..." : "Scan VMs"}
+					</Button>
+				</Box>
 			</Box>
 
 			{error && (
@@ -238,6 +260,13 @@ export const VmDetailPanel = ({ server }: Props) => {
 					})}
 				</Box>
 			)}
-		</Box>
+			</Box>
+			<VmFormDialog
+				open={createOpen}
+				serverId={server.id}
+				onClose={() => setCreateOpen(false)}
+				onCreated={handleCreated}
+			/>
+		</>
 	);
 };
