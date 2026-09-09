@@ -17,6 +17,7 @@
 		"build": "npm run clean && npm run build:openapi && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json && cp -r src/templates dist/templates",
 		"typeCheck": "tsc --noEmit",
 		"build:openapi": "tsc --noEmit && tsx scripts/buildOpenApi.ts",
+		"seed": "tsx --tsconfig tsconfig.json scripts/seed-demo.ts",
 		"lint": "eslint .",
 		"lint-fix": "eslint --fix .",
 		"format": "prettier --write .",
